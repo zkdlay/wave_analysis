@@ -5,10 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker
 from matplotlib.colors import LogNorm
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
-from funcoeswave import wave_signif, wavelet
-from main__wave import (
+from .wavelet_core import wave_signif, wavelet
+from .analise_wavelet import (
     ARQUIVO_DADOS_TRATADOS,
+    FONTE_ANALISE,
     ESCALA_INICIAL,
     NORMALIZAR_SERIES,
     PASSO_TEMPO,
@@ -20,8 +23,6 @@ from main__wave import (
     RESOLUCAO_ESCALA,
     USAR_PADDING,
     VARIAVEIS_ANALISAR,
-    calcular_percentual_area_significativa,
-    calcular_potencia_maxima,
     carregar_dados_tratados,
     caminho_disponivel,
     detectar_picos_globais,
@@ -44,7 +45,9 @@ from main__wave import (
 # Edite esta lista se quiser comparar apenas parte das wavelets.
 WAVELETS_COMPARAR = ["MORLET", "PAUL", "DOG"]
 
-PASTA_SAIDA_COMPARACAO = PASTA_SAIDA_FIGURAS.parent / "figuras_wavelet_comparacao"
+PASTA_SAIDA_COMPARACAO = (
+    PASTA_SAIDA_FIGURAS.parent.parent / "figuras_wavelet_comparacao" / FONTE_ANALISE
+)
 DPI_FIGURAS = 300
 
 CORES_WAVELETS = {
@@ -101,7 +104,9 @@ def calcular_wavelet_por_mae(serie_preparada, wavelet_mae):
     )
     significancia_95 = espectro_potencia / significancia_95
 
-    graus_liberdade_global = numero_amostras - escala
+    # No espectro global, sao promediados N espectros locais. A correcao por
+    # escala e aplicada internamente por wave_signif para o teste sigtest=1.
+    graus_liberdade_global = np.full_like(escala, numero_amostras, dtype=float)
     significancia_global = wave_signif(
         serie_preparada["variancia"],
         dt=PASSO_TEMPO,
@@ -140,6 +145,12 @@ def calcular_wavelet_por_mae(serie_preparada, wavelet_mae):
         mother=wavelet_mae,
     )
 
+    ciclos_fora_coi = (
+        np.sum(cone_influencia[np.newaxis, :] >= periodo[:, np.newaxis], axis=1)
+        * PASSO_TEMPO
+        / periodo
+    )
+
     return {
         "wavelet_mae": wavelet_mae,
         "periodo": periodo,
@@ -149,8 +160,10 @@ def calcular_wavelet_por_mae(serie_preparada, wavelet_mae):
         "espectro_wavelet_global": espectro_wavelet_global,
         "significancia_95": significancia_95,
         "significancia_global": significancia_global,
+        "graus_liberdade_global": graus_liberdade_global,
         "media_escala": media_escala,
         "significancia_media_escala": significancia_media_escala,
+        "ciclos_fora_coi": ciclos_fora_coi,
         "numero_escalas": numero_escalas,
         "lag1": autocorrelacao_lag1,
     }
@@ -200,14 +213,11 @@ def escala_cor_potencia(resultados):
 def plotar_par_escalogramas(coluna, serie_preparada, resultados, par_wavelets):
     config = VARIAVEIS_ANALISAR[coluna]
     datas = serie_preparada["datas"]
-    minimo, maximo = escala_cor_potencia(
-        {nome: resultados[nome] for nome in par_wavelets}
-    )
-
     fig, eixos = plt.subplots(1, 2, figsize=(16, 6), sharex=True, sharey=True)
 
     for eixo, wavelet_mae in zip(eixos, par_wavelets):
         resultado = resultados[wavelet_mae]
+        minimo, maximo = escala_cor_potencia({wavelet_mae: resultado})
         preenchimento = eixo.contourf(
             datas,
             resultado["periodo"],
@@ -230,7 +240,6 @@ def plotar_par_escalogramas(coluna, serie_preparada, resultados, par_wavelets):
             resultado["cone_influencia"],
             color="black",
             linewidth=1.4,
-            label="COI",
         )
         eixo.fill_between(
             datas,
@@ -246,15 +255,28 @@ def plotar_par_escalogramas(coluna, serie_preparada, resultados, par_wavelets):
         eixo.set_title(wavelet_mae.title())
         eixo.set_xlabel("Data")
         eixo.grid(True, alpha=0.18)
+        barra = fig.colorbar(preenchimento, ax=eixo, pad=0.02)
+        barra.set_label("Potencia (escala propria)")
 
     eixos[0].set_ylabel("Periodo")
-    barra = fig.colorbar(preenchimento, ax=eixos, pad=0.02)
-    barra.set_label(f"Potencia wavelet ({serie_preparada['unidade_potencia']})")
+    fig.legend(
+        handles=[
+            Line2D([0], [0], color="white", linewidth=1.2, label="Significancia 95%"),
+            Line2D([0], [0], color="black", linewidth=1.4, label="COI"),
+            Patch(facecolor="white", edgecolor="#333333", hatch="///", label="Fora do COI"),
+        ],
+        loc="lower center",
+        ncol=3,
+        frameon=True,
+    )
     fig.suptitle(
         f"Comparacao de escalogramas - {config['rotulo']}: "
-        f"{par_wavelets[0].title()} x {par_wavelets[1].title()}",
+        f"{par_wavelets[0].title()} x {par_wavelets[1].title()}\n"
+        f"Periodo analisado: {datas.min():%d/%m/%Y} a {datas.max():%d/%m/%Y} | "
+        "cores em escalas independentes.",
         fontsize=15,
     )
+    fig.tight_layout(rect=(0, 0.08, 1, 0.90))
     return fig
 
 
@@ -453,79 +475,26 @@ def gerar_texto_relatorio_comparacao(coluna, serie_preparada, resultados):
         "=" * 88,
         f"Normalizacao: {'ativada' if NORMALIZAR_SERIES else 'desativada'}",
         f"Unidade da serie: {config['unidade']}",
-        f"Unidade da potencia: {serie_preparada['unidade_potencia']}",
         f"Amostras: {len(serie_preparada['datas'])}",
+        "Criterio: compare periodo, persistencia significativa fora do COI e coerencia fisica.",
+        "Nao compare potencia absoluta, percentual de area significativa ou intensidade de cor.",
         "",
         "Periodos dominantes",
         "-" * 88,
-        "Wavelet\tOrdem\tPeriodo\tPeriodo_dias\tPotencia_global",
+        "Wavelet\tOrdem\tPeriodo\tPeriodo_dias\tCiclos_fora_COI\tPersistencia_dias\tPersistencia_%\tCoerencia_fisica",
     ]
 
-    metricas = {}
     nomes = ["principal", "secundario", "terceiro"]
     for wavelet_mae, resultado in resultados.items():
         picos = detectar_picos_globais(resultado, quantidade=QUANTIDADE_PICOS_GLOBAIS)
-        potencia_maxima = calcular_potencia_maxima(serie_preparada, resultado)
-        percentual_significativo = calcular_percentual_area_significativa(resultado)
-        metricas[wavelet_mae] = {
-            "picos": picos,
-            "potencia_maxima": potencia_maxima,
-            "percentual_significativo": percentual_significativo,
-        }
-
         for ordem, pico in enumerate(picos, start=1):
             nome = nomes[ordem - 1] if ordem <= len(nomes) else f"pico_{ordem}"
             linhas.append(
                 f"{wavelet_mae}\t{nome}\t{pico['rotulo']}\t"
-                f"{pico['periodo']:.8f}\t{pico['potencia']:.8g}"
+                f"{pico['periodo']:.8f}\t{pico['ciclos_fora_coi']:.2f}\t"
+                f"{pico['persistencia_dias']:.2f}\t{pico['persistencia_percentual']:.2f}%\t"
+                f"{'banda diaria meteorologica' if 20 / 24 <= pico['periodo'] <= 28 / 24 else 'requer avaliacao fisica'}"
             )
-
-    linhas.extend(
-        [
-            "",
-            "Potencia maxima local no escalograma",
-            "-" * 88,
-            "Wavelet\tPotencia_maxima\tInstante\tPeriodo\tPeriodo_dias",
-        ]
-    )
-    for wavelet_mae, valores in metricas.items():
-        potencia_maxima = valores["potencia_maxima"]
-        linhas.append(
-            f"{wavelet_mae}\t{potencia_maxima['potencia']:.8g}\t"
-            f"{potencia_maxima['instante']}\t"
-            f"{potencia_maxima['periodo_formatado']}\t"
-            f"{potencia_maxima['periodo']:.8f}"
-        )
-
-    linhas.extend(
-        [
-            "",
-            "Regioes significativas",
-            "-" * 88,
-            "Wavelet\tPercentual_area_significativa",
-        ]
-    )
-    for wavelet_mae, valores in metricas.items():
-        linhas.append(
-            f"{wavelet_mae}\t{valores['percentual_significativo']:.3f}%"
-        )
-
-    linhas.extend(
-        [
-            "",
-            "Comparacao direta do percentual significativo",
-            "-" * 88,
-        ]
-    )
-    ordenados = sorted(
-        metricas.items(),
-        key=lambda item: item[1]["percentual_significativo"],
-        reverse=True,
-    )
-    for posicao, (wavelet_mae, valores) in enumerate(ordenados, start=1):
-        linhas.append(
-            f"{posicao}. {wavelet_mae}: {valores['percentual_significativo']:.3f}%"
-        )
 
     return "\n".join(linhas) + "\n"
 
@@ -599,22 +568,6 @@ def main():
                 / f"relatorio_{wavelet_mae.lower()}_{coluna}.txt"
             )
             print(f"Relatorio salvo em: {salvar_texto(relatorio, caminho_relatorio)}")
-
-        figura = plotar_espectros_globais_sobrepostos(
-            coluna,
-            serie_preparada,
-            resultados,
-        )
-        caminho = pasta_variavel / f"espectros_globais_sobrepostos_{coluna}.png"
-        print(f"Figura salva em: {salvar_figura(figura, caminho)}")
-
-        figura = plotar_espectros_globais_horizontais(
-            coluna,
-            serie_preparada,
-            resultados,
-        )
-        caminho = pasta_variavel / f"espectros_globais_horizontais_{coluna}.png"
-        print(f"Figura salva em: {salvar_figura(figura, caminho)}")
 
         for wavelet_a, wavelet_b in combinations(WAVELETS_COMPARAR, 2):
             figura = plotar_par_escalogramas(

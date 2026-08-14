@@ -5,8 +5,9 @@ import numpy as np
 from matplotlib import ticker
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 
-from main__wave import (
+from .analise_wavelet import (
     ARQUIVO_DADOS_TRATADOS,
+    FONTE_ANALISE,
     PASTA_SAIDA_FIGURAS,
     QUANTIDADE_PICOS_GLOBAIS,
     VARIAVEIS_ANALISAR,
@@ -16,7 +17,7 @@ from main__wave import (
     formatar_periodo,
     preparar_serie,
 )
-from main_wave_comparacao import (
+from .comparar_wavelets import (
     CORES_WAVELETS,
     WAVELETS_COMPARAR,
     calcular_wavelet_por_mae,
@@ -24,7 +25,7 @@ from main_wave_comparacao import (
 
 
 PASTA_SAIDA_NOVAS_VISUALIZACOES = (
-    PASTA_SAIDA_FIGURAS.parent / "figuras_novas_visualizacoes"
+    PASTA_SAIDA_FIGURAS.parent.parent / "figuras_novas_visualizacoes" / FONTE_ANALISE
 )
 DPI_FIGURAS = 300
 

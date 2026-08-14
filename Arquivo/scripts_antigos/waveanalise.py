@@ -11,14 +11,18 @@ from funcoeswave import wave_signif, wavelet
 # 1. Carregamento e agregacao dos dados
 # ---------------------------------------------------------------------------
 
-arquivo_dados = Path(__file__).resolve().parent.parent / "table_onehour.xlsx"
+arquivo_dados = (
+    Path(__file__).resolve().parent.parent
+    / "2026"
+    / "dados_tratados"
+    / "inpe_2024-08-28_11h_continua_umidade_tratada.csv"
+)
 
-dados_horarios = pd.read_excel(arquivo_dados)
-dados_horarios["TIMESTAMP"] = pd.to_datetime(dados_horarios["TIMESTAMP"])
-dados_horarios["data"] = dados_horarios["TIMESTAMP"].dt.date
+dados_horarios = pd.read_csv(arquivo_dados, parse_dates=["data_hora"])
+dados_horarios["data"] = dados_horarios["data_hora"].dt.date
 
 dados_diarios = (
-    dados_horarios.groupby("data")[["Temperatura_Avg", "Umidade_Avg"]]
+    dados_horarios.groupby("data")[["temperatura", "umidade_relativa"]]
     .mean()
     .reset_index()
 )
@@ -28,7 +32,7 @@ dados_diarios = (
 # 2. Preparacao da serie temporal analisada
 # ---------------------------------------------------------------------------
 
-umidade_media_diaria = dados_diarios["Umidade_Avg"].values
+umidade_media_diaria = dados_diarios["umidade_relativa"].values
 umidade_anomalia = umidade_media_diaria - np.mean(umidade_media_diaria)
 variancia_umidade = np.std(umidade_anomalia, ddof=1) ** 2
 

@@ -1,6 +1,6 @@
 import numpy as np 
-from scipy.optimize import fminbound 
-from scipy.special._ufuncs import gamma, gammainc
+from scipy.special import gamma
+from scipy.stats import chi2
 
 def wavelet(Y, dt, pad=0, dj=-1, s0=-1, J1=-1, mother=-1, freq=None):
     """
@@ -220,21 +220,9 @@ def wave_signif(Y, dt, scale, sigtest=0, lag1=0.0, siglvl=0.95,
     return signif
 
 def chisquare_inv(P, V):
-    """Calcula o inverso da distribuição qui-quadrado."""
-    if (1 - P) < 1E-4:
-        raise ValueError('P deve ser menor que 0.9999')
-    if P == 0.95 and V == 2:
-        return 5.9915
-    MINN, MAXX = 0.01, 1
-    X = 1
-    TOLERANCE = 1E-4
-    while (X + TOLERANCE) >= MAXX:
-        MAXX *= 10
-        X = fminbound(chisquare_solve, MINN, MAXX, args=(P, V), xtol=TOLERANCE)
-        MINN = MAXX
-    return X * V
-
-def chisquare_solve(XGUESS, P, V):
-    """Função auxiliar para resolver a equação qui-quadrado."""
-    PGUESS = gammainc(V / 2, V * XGUESS / 2)
-    return np.abs(PGUESS - P)
+    """Retorna o quantil P da distribuição qui-quadrado com V graus de liberdade."""
+    if not 0 < P < 1:
+        raise ValueError("P deve estar estritamente entre 0 e 1.")
+    if V <= 0:
+        raise ValueError("V deve ser positivo.")
+    return chi2.ppf(P, V)

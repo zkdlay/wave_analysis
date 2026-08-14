@@ -5,71 +5,18 @@ import numpy as np
 import pandas as pd
 from matplotlib import ticker
 from matplotlib.colors import LogNorm
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
-from funcoeswave import wave_signif, wavelet
+from .wavelet_core import wave_signif, wavelet
+from config.caminhos_e_parametros import *
 
 
-# ---------------------------------------------------------------------------
-# 1. Configuracoes gerais
-# ---------------------------------------------------------------------------
-
-PASTA_PROJETO_DADOS = Path(
-    r"C:\Users\Windows\OneDrive\Documentos\Iniciação Cientifica - INPE\2026"
-)
-ARQUIVO_DADOS_TRATADOS = (
-    PASTA_PROJETO_DADOS / "dados_tratados" / "nasa_power_tratado.csv"
-)
-PASTA_SAIDA_FIGURAS = Path(__file__).resolve().parent / "figuras_wavelet"
-
-# Ative para comparar variaveis em escala padronizada. Desative para manter
-# as unidades fisicas originais de cada serie.
-NORMALIZAR_SERIES = True
-
-# A transformada wavelet precisa de uma serie regular. Se houver falhas na
-# sequencia horaria, os valores ausentes serao interpolados quando esta opcao
-# estiver ativa.
-INTERPOLAR_FALTANTES = True
-
-VARIAVEIS_ANALISAR = {
-    "temperatura": {
-        "rotulo": "Temperatura",
-        "unidade": "degC",
-        "cor": "#b2182b",
-    },
-    "umidade_relativa": {
-        "rotulo": "Umidade relativa",
-        "unidade": "%",
-        "cor": "#2166ac",
-    },
-    "radiacao_onda_curta": {
-        "rotulo": "Radiacao de onda curta",
-        "unidade": "MJ/m2/h",
-        "cor": "#ef8a00",
-    },
-}
+from config.caminhos_e_parametros import *
 
 
 # ---------------------------------------------------------------------------
-# 2. Parametros da analise wavelet
-# ---------------------------------------------------------------------------
-
-PASSO_TEMPO = 1 / 24  # dias; a base tratada esta em frequencia horaria.
-USAR_PADDING = 1
-RESOLUCAO_ESCALA = 0.25
-ESCALA_INICIAL = 2 * PASSO_TEMPO  # 2 horas, em unidade de dias.
-PERIODO_MAX_ANALISE_DIAS = 365
-WAVELET_MAE = "PAUL"
-
-PERIODO_MIN_MEDIA_ESCALA = 2
-PERIODO_MAX_MEDIA_ESCALA = 8
-CONSTANTE_RECONSTRUCAO = 1.132  # Cdelta para wavelet PAUL com parametro 4.
-LIMIAR_EVENTO_EXTREMO = 2.0
-QUANTIDADE_PICOS_GLOBAIS = 3
-DPI_FIGURAS = 300
-
-
-# ---------------------------------------------------------------------------
-# 3. Leitura e preparo da base tratada
+# Leitura e preparo da base tratada
 # ---------------------------------------------------------------------------
 
 def carregar_dados_tratados(caminho_csv):
@@ -183,7 +130,9 @@ def calcular_wavelet(serie_preparada):
     )
     significancia_95 = espectro_potencia / significancia_95
 
-    graus_liberdade_global = numero_amostras - escala
+    # No espectro global, sao promediados N espectros locais. A correcao por
+    # escala e aplicada internamente por wave_signif para o teste sigtest=1.
+    graus_liberdade_global = np.full_like(escala, numero_amostras, dtype=float)
     significancia_global = wave_signif(
         serie_preparada["variancia"],
         dt=PASSO_TEMPO,
@@ -221,6 +170,12 @@ def calcular_wavelet(serie_preparada):
         mother=WAVELET_MAE,
     )
 
+    ciclos_fora_coi = (
+        np.sum(cone_influencia[np.newaxis, :] >= periodo[:, np.newaxis], axis=1)
+        * PASSO_TEMPO
+        / periodo
+    )
+
     return {
         "wavelet_mae": WAVELET_MAE,
         "periodo": periodo,
@@ -230,8 +185,10 @@ def calcular_wavelet(serie_preparada):
         "espectro_wavelet_global": espectro_wavelet_global,
         "significancia_95": significancia_95,
         "significancia_global": significancia_global,
+        "graus_liberdade_global": graus_liberdade_global,
         "media_escala": media_escala,
         "significancia_media_escala": significancia_media_escala,
+        "ciclos_fora_coi": ciclos_fora_coi,
         "numero_escalas": numero_escalas,
     }
 
@@ -259,9 +216,13 @@ def detectar_picos_globais(resultado, quantidade=QUANTIDADE_PICOS_GLOBAIS):
     espectro = np.asarray(resultado["espectro_wavelet_global"])
     periodos = np.asarray(resultado["periodo"])
     significancia = np.asarray(resultado["significancia_global"])
+    ciclos_fora_coi = np.asarray(resultado["ciclos_fora_coi"])
+    escalas_confiaveis = ciclos_fora_coi >= MINIMO_CICLOS_FORA_COI
     candidatos = []
 
     for indice in range(1, len(espectro) - 1):
+        if not escalas_confiaveis[indice]:
+            continue
         if espectro[indice] <= espectro[indice - 1]:
             continue
         if espectro[indice] <= espectro[indice + 1]:
@@ -271,7 +232,7 @@ def detectar_picos_globais(resultado, quantidade=QUANTIDADE_PICOS_GLOBAIS):
         candidatos.append(indice)
 
     if not candidatos:
-        candidatos = list(np.argsort(espectro)[-quantidade:])
+        candidatos = list(np.flatnonzero(escalas_confiaveis))
 
     candidatos = sorted(candidatos, key=lambda indice: espectro[indice], reverse=True)
     picos = []
@@ -279,11 +240,22 @@ def detectar_picos_globais(resultado, quantidade=QUANTIDADE_PICOS_GLOBAIS):
         periodo = periodos[indice]
         if any(abs(np.log2(periodo / pico["periodo"])) < 0.25 for pico in picos):
             continue
+        fora_coi = resultado["cone_influencia"] >= periodo
+        significativo = np.asarray(resultado["significancia_95"])[indice] >= 1
+        amostras_validas = np.count_nonzero(fora_coi)
+        amostras_significativas = np.count_nonzero(fora_coi & significativo)
         picos.append(
             {
                 "indice": indice,
                 "periodo": periodo,
                 "potencia": espectro[indice],
+                "ciclos_fora_coi": ciclos_fora_coi[indice],
+                "persistencia_dias": amostras_significativas * PASSO_TEMPO,
+                "persistencia_percentual": (
+                    100 * amostras_significativas / amostras_validas
+                    if amostras_validas
+                    else 0.0
+                ),
                 "rotulo": formatar_periodo(periodo),
             }
         )
@@ -298,11 +270,15 @@ def calcular_potencia_maxima(serie_preparada, resultado):
         np.nanargmax(resultado["espectro_potencia"]),
         resultado["espectro_potencia"].shape,
     )
+    ciclos_fora_coi = float(resultado["ciclos_fora_coi"][indice_periodo])
+    atende_criterio = ciclos_fora_coi >= MINIMO_CICLOS_FORA_COI
     return {
         "potencia": float(resultado["espectro_potencia"][indice_periodo, indice_tempo]),
         "instante": serie_preparada["datas"][indice_tempo],
         "periodo": float(resultado["periodo"][indice_periodo]),
         "periodo_formatado": formatar_periodo(resultado["periodo"][indice_periodo]),
+        "ciclos_fora_coi": ciclos_fora_coi,
+        "atende_criterio_coi": atende_criterio,
     }
 
 
@@ -326,10 +302,11 @@ def gerar_texto_relatorio_individual(coluna, serie_preparada, resultado, picos):
         f"Unidade da potencia: {serie_preparada['unidade_potencia']}",
         f"Amostras: {len(serie_preparada['datas'])}",
         f"Lag-1 estimado: {serie_preparada['lag1']:.6f}",
+        f"Criterio para pico dominante: >= {MINIMO_CICLOS_FORA_COI:.0f} ciclos fora do COI",
         "",
         "Periodo dominante pelo espectro global",
         "-" * 72,
-        "Ordem\tPeriodo\tPeriodo_dias\tPotencia_global",
+        "Ordem\tPeriodo\tPeriodo_dias\tPotencia_global\tCiclos_fora_COI",
     ]
 
     nomes = ["principal", "secundario", "terceiro"]
@@ -337,6 +314,7 @@ def gerar_texto_relatorio_individual(coluna, serie_preparada, resultado, picos):
         nome = nomes[ordem - 1] if ordem <= len(nomes) else f"pico_{ordem}"
         linhas.append(
             f"{nome}\t{pico['rotulo']}\t{pico['periodo']:.8f}\t{pico['potencia']:.8g}"
+            f"\t{pico['ciclos_fora_coi']:.2f}"
         )
 
     linhas.extend(
@@ -348,6 +326,15 @@ def gerar_texto_relatorio_individual(coluna, serie_preparada, resultado, picos):
             f"Instante da potencia maxima: {potencia_maxima['instante']}",
             f"Periodo correspondente: {potencia_maxima['periodo_formatado']}",
             f"Periodo correspondente (dias): {potencia_maxima['periodo']:.8f}",
+            f"Ciclos fora do COI: {potencia_maxima['ciclos_fora_coi']:.2f}",
+            (
+                "Classificacao: dentro do criterio de suporte fora do COI."
+                if potencia_maxima["atende_criterio_coi"]
+                else (
+                    "Classificacao: fora do criterio minimo de suporte fora do COI; "
+                    "nao interpretar como ciclo dominante."
+                )
+            ),
             "",
             "Regioes significativas",
             "-" * 72,
@@ -478,11 +465,21 @@ def plotar_escalograma(coluna, serie_preparada, resultado):
     )
 
     configurar_eixo_periodo(eixo, resultado["periodo"])
-    eixo.set_title(f"Escalograma Wavelet - {config['rotulo']}")
+    eixo.set_title(
+        f"Escalograma - {resultado['wavelet_mae'].title()} | {config['rotulo']}\n"
+        f"Periodo analisado: {datas.min():%d/%m/%Y} a {datas.max():%d/%m/%Y}"
+    )
     eixo.set_ylabel("Periodo")
     eixo.set_xlabel("Data")
-    eixo.legend(loc="upper right", frameon=True)
-    eixo.clabel(contorno, fmt={1: "95%"}, inline=True, fontsize=9)
+    eixo.legend(
+        handles=[
+            Line2D([0], [0], color="white", linewidth=1.4, label="Significancia 95%"),
+            Line2D([0], [0], color="black", linewidth=1.6, label="COI"),
+            Patch(facecolor="white", edgecolor="#333333", hatch="///", label="Fora do COI"),
+        ],
+        loc="upper right",
+        frameon=True,
+    )
     barra = fig.colorbar(preenchimento, ax=eixo, pad=0.02)
     barra.set_label(f"Potencia wavelet ({serie_preparada['unidade_potencia']})")
     fig.tight_layout()
@@ -542,61 +539,6 @@ def plotar_espectro_global(coluna, serie_preparada, resultado, picos):
     eixo.set_ylabel("Periodo")
     eixo.legend(loc="lower right", frameon=True)
     eixo.grid(True, alpha=0.25)
-    fig.tight_layout()
-    return fig
-
-
-def plotar_espectro_global_horizontal(coluna, serie_preparada, resultado, picos):
-    config = VARIAVEIS_ANALISAR[coluna]
-    periodo_horas = resultado["periodo"] * 24
-    potencia = resultado["espectro_wavelet_global"]
-    significancia = resultado["significancia_global"]
-
-    fig, eixo = plt.subplots(figsize=(12, 5.5))
-    eixo.fill_between(
-        periodo_horas,
-        potencia,
-        color=config["cor"],
-        alpha=0.35,
-        label="Potencia global",
-    )
-    eixo.plot(periodo_horas, potencia, color=config["cor"], linewidth=1.8)
-    eixo.plot(
-        periodo_horas,
-        significancia,
-        color="black",
-        linestyle="--",
-        linewidth=1.2,
-        label="Significancia 95%",
-    )
-
-    for posicao, pico in enumerate(picos, start=1):
-        periodo_pico_horas = pico["periodo"] * 24
-        eixo.scatter(
-            periodo_pico_horas,
-            pico["potencia"],
-            color="#d73027",
-            s=45,
-            zorder=3,
-        )
-        eixo.annotate(
-            f"P{posicao}: {pico['rotulo']}",
-            xy=(periodo_pico_horas, pico["potencia"]),
-            xytext=(6, 8),
-            textcoords="offset points",
-            fontsize=9,
-        )
-
-    eixo.axvline(24, color="#555555", linestyle=":", linewidth=1, label="24 h")
-    eixo.set_xscale("log", base=2)
-    eixo.xaxis.set_major_formatter(
-        ticker.FuncFormatter(lambda valor, _: formatar_periodo(valor / 24))
-    )
-    eixo.set_title(f"Espectro global horizontal - {config['rotulo']}")
-    eixo.set_xlabel("Periodo")
-    eixo.set_ylabel(f"Potencia ({serie_preparada['unidade_potencia']})")
-    eixo.grid(True, alpha=0.25)
-    eixo.legend(loc="upper right", frameon=True)
     fig.tight_layout()
     return fig
 
@@ -762,6 +704,7 @@ def main():
         picos = detectar_picos_globais(resultado)
 
         sufixo_normalizacao = "normalizado" if NORMALIZAR_SERIES else "original"
+        sufixo_wavelet = resultado["wavelet_mae"].lower()
         pasta_variavel = PASTA_SAIDA_FIGURAS / coluna
         figuras = {
             "serie_temporal": plotar_serie_temporal(coluna, serie_preparada),
@@ -772,18 +715,13 @@ def main():
                 resultado,
                 picos,
             ),
-            "espectro_global_horizontal": plotar_espectro_global_horizontal(
-                coluna,
-                serie_preparada,
-                resultado,
-                picos,
-            ),
             "painel_completo": plotar_quadro_wavelet(coluna, serie_preparada, resultado),
         }
 
         for nome_figura, figura in figuras.items():
             arquivo_figura = (
-                pasta_variavel / f"{nome_figura}_{coluna}_{sufixo_normalizacao}.png"
+                pasta_variavel
+                / f"{nome_figura}_{coluna}_{sufixo_normalizacao}_{sufixo_wavelet}.png"
             )
             arquivo_figura = salvar_figura(figura, arquivo_figura)
             plt.close(figura)
@@ -799,7 +737,10 @@ def main():
             resultado,
             picos,
         )
-        arquivo_relatorio = pasta_variavel / f"relatorio_{coluna}_{sufixo_normalizacao}.txt"
+        arquivo_relatorio = (
+            pasta_variavel
+            / f"relatorio_{coluna}_{sufixo_normalizacao}_{sufixo_wavelet}.txt"
+        )
         print(f"Relatorio salvo em: {salvar_texto(relatorio, arquivo_relatorio)}")
 
 

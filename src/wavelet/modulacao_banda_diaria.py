@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from main__wave import (
+from .analise_wavelet import (
     ARQUIVO_DADOS_TRATADOS,
     PASTA_SAIDA_FIGURAS,
     VARIAVEIS_ANALISAR,
@@ -12,7 +12,7 @@ from main__wave import (
     preparar_serie,
     salvar_texto,
 )
-from main_wave_comparacao import calcular_wavelet_por_mae
+from .comparar_wavelets import calcular_wavelet_por_mae
 
 
 PASTA_SAIDA_MODULACAO = PASTA_SAIDA_FIGURAS.parent / "figuras_modulacao"
@@ -281,23 +281,24 @@ def main():
     PASTA_SAIDA_MODULACAO.mkdir(parents=True, exist_ok=True)
     dados = carregar_dados_tratados(ARQUIVO_DADOS_TRATADOS)
     resultados = calcular_modulacao_diaria(dados)
+    sufixo_wavelet = WAVELET_MODULACAO.lower()
 
     for variavel_a, variavel_b in PARES_MODULACAO:
         figura, correlacao = plotar_modulacao_par(resultados, variavel_a, variavel_b)
         sufixo = f"{nome_curto_variavel(variavel_a)}_{nome_curto_variavel(variavel_b)}"
-        caminho_figura = PASTA_SAIDA_MODULACAO / f"modulacao_banda_diaria_{sufixo}.png"
+        caminho_figura = PASTA_SAIDA_MODULACAO / f"modulacao_banda_diaria_{sufixo}_{sufixo_wavelet}.png"
         print(f"Figura salva em: {salvar_figura(figura, caminho_figura)}")
 
         relatorio = gerar_relatorio_par(resultados, correlacao, variavel_a, variavel_b)
-        caminho_relatorio = PASTA_SAIDA_MODULACAO / f"relatorio_modulacao_banda_diaria_{sufixo}.txt"
+        caminho_relatorio = PASTA_SAIDA_MODULACAO / f"relatorio_modulacao_banda_diaria_{sufixo}_{sufixo_wavelet}.txt"
         print(f"Relatorio salvo em: {salvar_texto(relatorio, caminho_relatorio)}")
 
     figura_tres = plotar_modulacao_tres_variaveis(resultados)
-    caminho_figura_tres = PASTA_SAIDA_MODULACAO / "modulacao_banda_diaria_tres_variaveis.png"
+    caminho_figura_tres = PASTA_SAIDA_MODULACAO / f"modulacao_banda_diaria_tres_variaveis_{sufixo_wavelet}.png"
     print(f"Figura salva em: {salvar_figura(figura_tres, caminho_figura_tres)}")
 
     relatorio_tres = gerar_relatorio_tres_variaveis(resultados)
-    caminho_relatorio_tres = PASTA_SAIDA_MODULACAO / "relatorio_modulacao_banda_diaria_tres_variaveis.txt"
+    caminho_relatorio_tres = PASTA_SAIDA_MODULACAO / f"relatorio_modulacao_banda_diaria_tres_variaveis_{sufixo_wavelet}.txt"
     print(f"Relatorio salvo em: {salvar_texto(relatorio_tres, caminho_relatorio_tres)}")
 
 
