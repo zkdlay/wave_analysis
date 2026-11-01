@@ -1,5 +1,8 @@
 """Junta os arquivos brutos .dat da SONDA em um arquivo por ano.
 
+Para que serve: primeira etapa do fluxo (dados brutos -> arquivos anuais do MD).
+Quem usa: e rodado a mao; a saida e lida por notebooks/sonda/
+
 Os valores e a resolucao original sao mantidos (MD: 10 min). Alteracoes:
 - removidos horarios repetidos;
 - removidos os registros anteriores a INICIO: antes da troca do datalogger

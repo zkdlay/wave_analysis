@@ -1,33 +1,52 @@
 # Mapa do projeto
 
-> A única fonte de dados é a estação SONDA de Cachoeira Paulista (pasta
-> **"Dados SONDA"** do Google Drive). No momento a análise wavelet cobre só a
-> temperatura do MD; a umidade aguarda a resposta do grupo sobre as falhas de
-> mar–mai/2025.
+> Lista oficial do que está em uso. **Regra:** o que não aparece aqui não faz
+> parte do fluxo e vai para `_lixo/` (fora do git, mas consultável na pasta).
+>
+> Hoje a única fonte é a estação SONDA de Cachoeira Paulista (pasta **"Dados
+> SONDA"** do Google Drive). A análise wavelet cobre só a temperatura do MD; a
+> umidade aguarda a resposta do grupo sobre as falhas de mar–mai/2025.
 
-## Estrutura
+## Ideia geral
 
 ```text
-wave_analysis-1/
-├── README_EXECUCAO.md               como executar cada etapa
-├── config/
-│   └── caminhos_e_parametros.py     caminhos e parâmetros padrão da wavelet
-├── src/
-│   ├── dados/
-│   │   └── sonda.py                 leitura dos .dat, junção por ano, controle de qualidade
-│   └── wavelet/
-│       ├── wavelet_core.py          transformada e significância (Torrence & Compo, 1998)
-│       └── analise_wavelet.py       leitura da variável, preparo, escalograma e figura
-├── executar/
-│   ├── juntar_sonda_por_ano.py      .dat brutos -> um arquivo por ano (MD, 10 min)
-│   └── executar_escalograma.py      sinal, escalograma, espectro global e fase (Morlet; 10 min e 1 h)
-├── notebooks/
-│   ├── 01_tratamento_sonda.ipynb    exploração anterior: MD + SD em base horária
-│   └── 02_diagnostico_sonda_md.ipynb  falhas e valores estranhos do MD, com mapas
-├── docs/
-│   └── mapa_do_projeto.md           este arquivo
-└── _lixo/                           material antigo, fora do fluxo (pode ser consultado)
+TRATAMENTO (um por fonte)          FRONTEIRA                 MOTOR (um só, genérico)
+notebooks/<fonte>/ + src/dados/  -> 2026/series_prontas/  -> notebooks/wavelet/ + src/wavelet/
+  - lê o dado bruto                  <fonte>_<var>_<passo>.csv   - descobre o passo pelas datas
+  - controle de qualidade            colunas: tempo, valor       - recusa série irregular ou com falha
+  - muda o passo (10 min -> 1 h)     datas regulares, sem NaN    - normaliza, lag-1, transformada
+  - preenche falhas                                              - testes e gráficos escolhidos por lista
 ```
+
+O motor **não sabe** de onde a série veio e **não altera** o dado. Tudo que
+mexe no dado fica no tratamento.
+
+## Para que serve cada arquivo
+
+| Arquivo | Para que serve | Quem usa |
+|---|---|---|
+| `README_EXECUCAO.md` | como rodar cada etapa | você |
+| `requirements.txt` | versões das bibliotecas, para recriar o `.venv` | `pip install -r` |
+| `config/caminhos_e_parametros.py` | pastas e parâmetros padrão da wavelet | todos |
+| `src/dados/sonda.py` | ler os `.dat`, juntar por ano, corrigir umidade/pressão, ler o MD | `executar/`, `notebooks/sonda/` |
+| `src/dados/comum.py` | mudar passo, achar/preencher falhas, salvar série pronta (qualquer fonte) | notebooks de tratamento |
+| `src/wavelet/wavelet_core.py` | a conta: transformada e significância (Torrence & Compo, 1998) | `motor.py`, `significancia.py` |
+| `src/wavelet/motor.py` | valida a série, passo, normalização, lag-1, faixa de períodos, transformada | notebook do motor |
+| `src/wavelet/significancia.py` | testes de significância (`TESTES_DISPONIVEIS`) | `motor.py` |
+| `src/wavelet/graficos.py` | gráficos (`GRAFICOS_DISPONIVEIS`), títulos, salvar figuras | notebook do motor |
+| `executar/juntar_sonda_por_ano.py` | `.dat` brutos -> um arquivo por ano (MD, 10 min) | rodado à mão |
+| `notebooks/sonda/01_diagnostico.ipynb` | mostra falhas e valores estranhos do MD (não altera nada) | você |
+| `notebooks/sonda/02_tratamento.ipynb` | gera as séries prontas da SONDA | você |
+| `notebooks/wavelet/rodar_wavelet.ipynb` | roda o motor numa série e gera as figuras | você |
+
+## Como estender
+
+| Quero... | Onde |
+|---|---|
+| trocar wavelet-mãe, testes, gráficos, faixa de períodos, textos dos títulos | célula de configuração de `rodar_wavelet.ipynb` |
+| um gráfico novo | `plotar_<nome>(serie_preparada, resultado, info, opcoes)` em `graficos.py` + `GRAFICOS_DISPONIVEIS` |
+| um teste de significância novo | `teste_<nome>(serie_preparada, resultado, nivel)` em `significancia.py` + `TESTES_DISPONIVEIS` |
+| uma fonte nova (INPE, NASA...) | `src/dados/<fonte>.py` + `notebooks/<fonte>/` gravando em `series_prontas/` |
 
 ## Fora do repositório
 
@@ -39,53 +58,39 @@ Iniciação Cientifica - INPE/2026/
 ├── sonda_unificada/MD/              SAÍDA de juntar_sonda_por_ano.py
 │   ├── sonda_MD_2023 ... sonda_MD_2026 (.csv e .xlsx); 2023 só a partir de 01/12/2023
 │   ├── LEIAME_colunas_MD.txt        significado de cada coluna e cuidados
-│   └── diagnostico/                 tabelas do notebook 02
-├── resultados/figuras/
-│   ├── wavelet_sonda_md/            SAÍDA de executar_escalograma.py
-│   ├── sonda_tratamento/            figuras do notebook 01
-│   └── (demais pastas)              resultados antigos, das bases antigas
-├── sonda_tratada/                   saída do notebook 01 (base horária)
+│   └── diagnostico/                 tabelas do notebook 01_diagnostico
+├── series_prontas/                  SAÍDA do tratamento, ENTRADA do motor
+├── resultados/
+│   ├── wavelet/<fonte>/<variavel>/<wavelet>_<passo>/   SAÍDA do motor
+│   └── figuras/                     resultados antigos (fluxo anterior), não usados
+├── sonda_tratada/                   saída do notebook antigo (em _lixo/), não usada
 ├── dados_brutos/                    cópia local antiga (SONDA e NASA POWER), não usada
 └── dados_tratados/                  bases antigas (NASA, INPE, SONDA), não usadas
 ```
 
-## Fluxo atual
-
-```text
-Dados SONDA/AAAA/CPA_AAAA_DDD_a_DDD_MD.dat     (10 min, UTC)
-        │  executar/juntar_sonda_por_ano.py
-        ▼
-2026/sonda_unificada/MD/sonda_MD_AAAA.csv      (desde 01/12/2023; umidade > 100 % -> 100 %; pressão ~602 mb interpolada)
-        │                     │
-        │                     └─ notebooks/02_diagnostico_sonda_md.ipynb (falhas e valores estranhos)
-        │  executar/executar_escalograma.py
-        ▼
-2026/resultados/figuras/wavelet_sonda_md/<variavel>/
-    sinal_<variavel>_<passo>.png
-    escalograma_<variavel>_<wavelet>_<passo>.png
-    espectro_global_<variavel>_<wavelet>_<passo>.png
-    fase_<variavel>_<wavelet>_<passo>.png          (<passo> = 10min ou 1h)
-```
-
-## Escalograma: escolhas e correções
+## Escolhas do motor
 
 | Item | Como está | Antes (fluxo antigo) |
 |---|---|---|
-| Passo de tempo | 10 min (135.792 pontos) | 1 h |
-| Grade de períodos (dj) | 1/8: 8 escalas por oitava, ~21 min a ~1 ano | 1/4: o ciclo diário aparecia como "22 h" |
-| Falhas | interpola só falhas de até 60 min; maiores interrompem a análise com a lista | interpolava tudo sem avisar (ou `dropna`, que quebrava a série) |
-| Lag-1 do ruído vermelho | valor real (0,9978 na temperatura) | limitado a 0,99, subestimando o ruído nos períodos longos |
-| Memória | guarda só a potência (float32, ~64 MB) | guardava todos os coeficientes complexos |
-| Passo de tempo | 10 min e 1 h (média horária; o horário marca o fim da hora) | só 1 h |
-| Significância na figura | cores inteiras com contorno preto nas regiões significativas (`esmaecer=True` também esmaece as não significativas) | contornos brancos que viravam manchas em séries longas |
-| Espectro global | média da potência no tempo; significância com `N − escala/dt` graus de liberdade | — |
-| Fase | θ(a, τ) = arg W(a, τ), mapa de cores cíclico | — |
+| Passo de tempo | deduzido das datas; série irregular é recusada | escrito à mão no código |
+| Falhas | o motor recusa NaN; o tratamento interpola falhas de até 60 min e para nas maiores | interpolava tudo sem avisar (ou `dropna`) |
+| Grade de períodos (dj) | 1/8: 8 escalas por oitava | 1/4: o ciclo diário aparecia como "22 h" |
+| Faixa de períodos | automática: de 2 passos até o limite do COI (sem passar da duração da série); `PERIODO_MIN`/`PERIODO_MAX` opcionais | fixa até 365 d |
+| Eixo de período | marcas escolhidas pela faixa, em min, h, d, meses, anos | marcas fixas de 1 h a 256 d |
+| Lag-1 do ruído vermelho | valor real (0,9978 na temperatura de 10 min) | limitado a 0,99 |
+| Memória | guarda só potência e fase (float32) | todos os coeficientes complexos |
+| Significância na figura | contorno preto nas regiões significativas (`ESMAECER` esmaece as outras) | contornos brancos |
+| Espectro global | média da potência no tempo; `N − escala/dt` graus de liberdade | — |
+| Títulos | `FONTE`, `LOCAL`, `VARIAVEL`, `UNIDADE`, `TEXTO_EXTRA` vindos do notebook | fixos no código |
 | Arquivos de figura | sobrescreve | criava cópias `_01`, `_02`... |
-| `wave_signif` com `sigtest=1` | aceita `dof` escalar | quebrava com `dof` escalar |
-| Configuração | parâmetros passados como argumentos | variáveis globais sobrescritas pelos executores |
 
-Ainda por fazer quando for retomada: média de escala (constante de
-reconstrução de cada wavelet: Morlet 0,776, Paul 1,132, DOG 3,541).
+Conferência da reorganização (01/11/2026): com a temperatura em 10 min e 1 h,
+Morlet e `PERIODO_MAX = "365D"`, potência, fase, períodos, COI e significância
+saíram idênticos aos do motor antigo.
+
+Ainda por fazer: novos testes de significância (média de escala, `sigtest=2`,
+com as constantes de reconstrução Morlet 0,776, Paul 1,132, DOG 3,541; teste
+por área; Monte Carlo).
 
 ## Convenções dos dados SONDA
 
