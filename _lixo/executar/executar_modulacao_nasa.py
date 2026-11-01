@@ -13,7 +13,10 @@ for wavelet_mae in ("PAUL", "MORLET", "DOG"):
         base.PASTA_DADOS_TRATADOS / base.ARQUIVOS_DADOS_TRATADOS["nasa_power"]
     )
     modulacao.PASTA_SAIDA_MODULACAO = (
-        base.PASTA_PROJETO_DADOS / "figuras_modulacao" / "nasa_power"
+        base.PASTA_FIGURAS / "modulacao" / "nasa_power"
+    )
+    modulacao.PASTA_SAIDA_RELATORIOS_MODULACAO = (
+        base.PASTA_RELATORIOS_TXT / "modulacao" / "nasa_power"
     )
     modulacao.WAVELET_MODULACAO = wavelet_mae
     modulacao.main()

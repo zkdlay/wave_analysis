@@ -13,7 +13,7 @@ for fonte in ("nasa_power", "sonda_md", "sonda_sd"):
         base.PASTA_DADOS_TRATADOS / base.ARQUIVOS_DADOS_TRATADOS[fonte]
     )
     visualizacoes.PASTA_SAIDA_NOVAS_VISUALIZACOES = (
-        base.PASTA_PROJETO_DADOS / "figuras_novas_visualizacoes" / fonte
+        base.PASTA_FIGURAS / "novas_visualizacoes" / fonte
     )
     visualizacoes.main()
     print(f"CONCLUIDO: {fonte}", flush=True)

@@ -1,83 +1,69 @@
-"""Caminhos e parametros compartilhados pela analise wavelet.
+"""Caminhos e parametros do projeto.
 
-Os dados tratados ficam na pasta 2026, vizinha ao diretorio do projeto.
-Os executores podem sobrescrever as variaveis mutaveis deste modulo durante
-uma execucao em lote, mantendo um unico ponto de configuracao inicial.
+Os dados e resultados ficam na pasta 2026, vizinha ao diretorio do projeto.
+Os parametros da wavelet sao valores padrao: as funcoes de src/wavelet os
+recebem como argumentos, entao para mudar uma execucao basta passar outro
+valor na chamada (nao e preciso editar este arquivo).
 """
 
+import os
 from pathlib import Path
 
 
+# ---------------------------------------------------------------------------
+# Pastas
+# ---------------------------------------------------------------------------
+
 PASTA_PROJETO = Path(__file__).resolve().parents[1]
 PASTA_PROJETO_DADOS = PASTA_PROJETO.parent / "2026"
-PASTA_DADOS_TRATADOS = PASTA_PROJETO_DADOS / "dados_tratados"
+PASTA_RESULTADOS = PASTA_PROJETO_DADOS / "resultados"
 
-FONTE_ANALISE = "sonda_sd"
-ARQUIVOS_DADOS_TRATADOS = {
-    "nasa_power": "nasa_power_horario_padronizado.csv",
-    "inpe": "inpe_2024-08-28_11h_continua_umidade_tratada.csv",
-    "sonda_md": "sonda_md_horario_padronizado.csv",
-    "sonda_sd": "sonda_sd_depois_lacuna.csv",
-}
-UNIDADES_RADIACAO_POR_FONTE = {
-    "nasa_power": "Wh/m²",
-    "inpe": "W/m²",
-    "sonda_sd": "W/m²",
-}
+# Dados brutos da SONDA (.dat), na pasta "Dados SONDA" do Google Drive para
+# computador. A variavel de ambiente DADOS_SONDA substitui os candidatos.
+ID_PASTA_DRIVE_SONDA = "16ch5d4P2kFqiX3nc1-Dd0zlMsHKTNDfV"
+CANDIDATOS_PASTA_SONDA = [
+    Path(os.environ["DADOS_SONDA"]) if "DADOS_SONDA" in os.environ else None,
+    Path("G:/Meu Drive/Dados SONDA"),
+    Path(f"G:/.shortcut-targets-by-id/{ID_PASTA_DRIVE_SONDA}/Dados SONDA"),
+]
 
-
-def validar_fonte(fonte):
-    if fonte not in ARQUIVOS_DADOS_TRATADOS:
-        raise ValueError(
-            "FONTE_ANALISE deve ser uma das opcoes: "
-            f"{', '.join(ARQUIVOS_DADOS_TRATADOS)}."
-        )
+PASTA_SONDA_UNIFICADA = PASTA_PROJETO_DADOS / "sonda_unificada"
+PASTA_SONDA_MD = PASTA_SONDA_UNIFICADA / "MD"
+PASTA_SONDA_TRATADA = PASTA_PROJETO_DADOS / "sonda_tratada"
+PASTA_FIGURAS_SONDA = PASTA_RESULTADOS / "figuras" / "sonda_tratamento"
+PASTA_FIGURAS_WAVELET = PASTA_RESULTADOS / "figuras" / "wavelet_sonda_md"
 
 
-def caminho_dados_fonte(fonte):
-    validar_fonte(fonte)
-    return PASTA_DADOS_TRATADOS / ARQUIVOS_DADOS_TRATADOS[fonte]
+def pasta_dados_sonda():
+    for candidato in CANDIDATOS_PASTA_SONDA:
+        if candidato is not None and candidato.is_dir():
+            return candidato
+    raise FileNotFoundError(
+        "Pasta 'Dados SONDA' nao encontrada. Adicione o atalho em 'Meu Drive' "
+        "ou defina a variavel de ambiente DADOS_SONDA."
+    )
 
 
-def caminho_saida_wavelet(fonte):
-    validar_fonte(fonte)
-    return PASTA_PROJETO_DADOS / "figuras_wavelet" / fonte
+# ---------------------------------------------------------------------------
+# Variaveis da SONDA-MD
+# ---------------------------------------------------------------------------
 
-
-ARQUIVO_DADOS_TRATADOS = caminho_dados_fonte(FONTE_ANALISE)
-PASTA_SAIDA_FIGURAS = caminho_saida_wavelet(FONTE_ANALISE)
-
-NORMALIZAR_SERIES = True
-INTERPOLAR_FALTANTES = True
-
-VARIAVEIS_ANALISAR = {
-    "temperatura": {
-        "rotulo": "Temperatura",
-        "unidade": "degC",
-        "cor": "#b2182b",
-    },
-    "umidade_relativa": {
-        "rotulo": "Umidade relativa",
-        "unidade": "%",
-        "cor": "#2166ac",
-    },
-    "radiacao_onda_curta": {
-        "rotulo": "Radiacao de onda curta",
-        "unidade": UNIDADES_RADIACAO_POR_FONTE.get(FONTE_ANALISE, "W/m²"),
-        "cor": "#ef8a00",
-    },
+VARIAVEIS_MD = {
+    "tp_sfc": {"rotulo": "Temperatura do ar", "unidade": "°C"},
+    "humid": {"rotulo": "Umidade relativa", "unidade": "%"},
+    "press": {"rotulo": "Pressao atmosferica", "unidade": "mb"},
 }
 
-PASSO_TEMPO = 1 / 24
-USAR_PADDING = 1
-RESOLUCAO_ESCALA = 0.25
-ESCALA_INICIAL = 2 * PASSO_TEMPO
-PERIODO_MAX_ANALISE_DIAS = 365
-WAVELET_MAE = "MORLET"
-PERIODO_MIN_MEDIA_ESCALA = 2
-PERIODO_MAX_MEDIA_ESCALA = 8
-CONSTANTE_RECONSTRUCAO = 1.132
-LIMIAR_EVENTO_EXTREMO = 2.0
-QUANTIDADE_PICOS_GLOBAIS = 3
-MINIMO_CICLOS_FORA_COI = 3.0
-DPI_FIGURAS = 300
+
+# ---------------------------------------------------------------------------
+# Parametros padrao da wavelet (tempo em dias)
+# ---------------------------------------------------------------------------
+
+PASSO_MD_DIAS = 10 / 1440       # dados MD a cada 10 min
+RESOLUCAO_ESCALA = 1 / 8        # dj: 8 escalas por oitava (antes 1/4)
+ESCALAS_INICIAIS_EM_PASSOS = 2  # s0 = 2 * dt
+PERIODO_MAX_DIAS = 365
+USAR_PADDING = True
+NIVEL_SIGNIFICANCIA = 0.95
+INTERPOLAR_ATE_MINUTOS = 60     # falhas maiores que isso interrompem a analise
+DPI_FIGURAS = 200

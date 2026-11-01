@@ -4,6 +4,8 @@ import pandas as pd
 
 from .analise_wavelet import (
     ARQUIVO_DADOS_TRATADOS,
+    PASTA_FIGURAS,
+    PASTA_RELATORIOS_TXT,
     PASTA_SAIDA_FIGURAS,
     VARIAVEIS_ANALISAR,
     carregar_dados_tratados,
@@ -15,7 +17,8 @@ from .analise_wavelet import (
 from .comparar_wavelets import calcular_wavelet_por_mae
 
 
-PASTA_SAIDA_MODULACAO = PASTA_SAIDA_FIGURAS.parent / "figuras_modulacao"
+PASTA_SAIDA_MODULACAO = PASTA_FIGURAS / "modulacao"
+PASTA_SAIDA_RELATORIOS_MODULACAO = PASTA_RELATORIOS_TXT / "modulacao"
 DPI_FIGURAS = 300
 
 WAVELET_MODULACAO = "PAUL"
@@ -279,6 +282,7 @@ def nome_curto_variavel(coluna):
 
 def main():
     PASTA_SAIDA_MODULACAO.mkdir(parents=True, exist_ok=True)
+    PASTA_SAIDA_RELATORIOS_MODULACAO.mkdir(parents=True, exist_ok=True)
     dados = carregar_dados_tratados(ARQUIVO_DADOS_TRATADOS)
     resultados = calcular_modulacao_diaria(dados)
     sufixo_wavelet = WAVELET_MODULACAO.lower()
@@ -290,7 +294,7 @@ def main():
         print(f"Figura salva em: {salvar_figura(figura, caminho_figura)}")
 
         relatorio = gerar_relatorio_par(resultados, correlacao, variavel_a, variavel_b)
-        caminho_relatorio = PASTA_SAIDA_MODULACAO / f"relatorio_modulacao_banda_diaria_{sufixo}_{sufixo_wavelet}.txt"
+        caminho_relatorio = PASTA_SAIDA_RELATORIOS_MODULACAO / f"relatorio_modulacao_banda_diaria_{sufixo}_{sufixo_wavelet}.txt"
         print(f"Relatorio salvo em: {salvar_texto(relatorio, caminho_relatorio)}")
 
     figura_tres = plotar_modulacao_tres_variaveis(resultados)
@@ -298,7 +302,7 @@ def main():
     print(f"Figura salva em: {salvar_figura(figura_tres, caminho_figura_tres)}")
 
     relatorio_tres = gerar_relatorio_tres_variaveis(resultados)
-    caminho_relatorio_tres = PASTA_SAIDA_MODULACAO / f"relatorio_modulacao_banda_diaria_tres_variaveis_{sufixo_wavelet}.txt"
+    caminho_relatorio_tres = PASTA_SAIDA_RELATORIOS_MODULACAO / f"relatorio_modulacao_banda_diaria_tres_variaveis_{sufixo_wavelet}.txt"
     print(f"Relatorio salvo em: {salvar_texto(relatorio_tres, caminho_relatorio_tres)}")
 
 

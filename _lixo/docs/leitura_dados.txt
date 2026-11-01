@@ -50,8 +50,8 @@ Mas **não identificam exatamente os mesmos valores de período**, porque Morlet
 Pelos escalogramas gerados, especialmente em:
 
 ```text
-figuras_wavelet_comparacao/temperatura/
-figuras_wavelet_comparacao/radiacao_onda_curta/
+resultados/figuras/comparacao_wavelets/temperatura/
+resultados/figuras/comparacao_wavelets/radiacao_onda_curta/
 ```
 
 a resposta é:
@@ -188,7 +188,7 @@ para:
 usando a wavelet `PAUL`, e salva em:
 
 ```text
-figuras_modulacao/
+resultados/figuras/modulacao/
 ```
 
 Arquivos gerados:
@@ -238,7 +238,7 @@ Leitura direta:
 As figuras e relatórios foram salvos em:
 
 ```text
-figuras_modulacao/
+resultados/figuras/modulacao/
 ```
 
 Principais arquivos novos:

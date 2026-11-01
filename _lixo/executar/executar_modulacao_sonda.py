@@ -29,7 +29,10 @@ for wavelet_mae in ("PAUL", "MORLET", "DOG"):
     print(f"INICIO: sonda_md_sd | {wavelet_mae}", flush=True)
     modulacao.WAVELET_MODULACAO = wavelet_mae
     modulacao.PASTA_SAIDA_MODULACAO = (
-        base.PASTA_PROJETO_DADOS / "figuras_modulacao" / "sonda_md_sd"
+        base.PASTA_FIGURAS / "modulacao" / "sonda_md_sd"
+    )
+    modulacao.PASTA_SAIDA_RELATORIOS_MODULACAO = (
+        base.PASTA_RELATORIOS_TXT / "modulacao" / "sonda_md_sd"
     )
     resultados = modulacao.calcular_modulacao_diaria(dados)
     sufixo_wavelet = wavelet_mae.lower()
@@ -46,7 +49,7 @@ for wavelet_mae in ("PAUL", "MORLET", "DOG"):
         )
         modulacao.salvar_texto(
             modulacao.gerar_relatorio_par(resultados, correlacao, variavel_a, variavel_b),
-            modulacao.PASTA_SAIDA_MODULACAO
+            modulacao.PASTA_SAIDA_RELATORIOS_MODULACAO
             / f"relatorio_modulacao_banda_diaria_{sufixo}_{sufixo_wavelet}.txt",
         )
 
@@ -58,7 +61,7 @@ for wavelet_mae in ("PAUL", "MORLET", "DOG"):
     )
     modulacao.salvar_texto(
         modulacao.gerar_relatorio_tres_variaveis(resultados),
-        modulacao.PASTA_SAIDA_MODULACAO
+        modulacao.PASTA_SAIDA_RELATORIOS_MODULACAO
         / f"relatorio_modulacao_banda_diaria_tres_variaveis_{sufixo_wavelet}.txt",
     )
     print(f"CONCLUIDO: sonda_md_sd | {wavelet_mae}", flush=True)

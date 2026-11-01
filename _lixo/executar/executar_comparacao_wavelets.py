@@ -28,7 +28,10 @@ for fonte, variaveis in fontes_e_variaveis:
         base.PASTA_DADOS_TRATADOS / base.ARQUIVOS_DADOS_TRATADOS[fonte]
     )
     comparacao.PASTA_SAIDA_COMPARACAO = (
-        base.PASTA_PROJETO_DADOS / "figuras_wavelet_comparacao" / fonte
+        base.PASTA_FIGURAS / "comparacao_wavelets" / fonte
+    )
+    comparacao.PASTA_SAIDA_RELATORIOS_COMPARACAO = (
+        base.PASTA_RELATORIOS_TXT / "comparacao_wavelets" / fonte
     )
     comparacao.VARIAVEIS_ANALISAR = base.VARIAVEIS_ANALISAR
     comparacao.main()

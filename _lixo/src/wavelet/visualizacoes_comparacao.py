@@ -8,6 +8,7 @@ from matplotlib.colors import LogNorm, TwoSlopeNorm
 from .analise_wavelet import (
     ARQUIVO_DADOS_TRATADOS,
     FONTE_ANALISE,
+    PASTA_FIGURAS,
     PASTA_SAIDA_FIGURAS,
     QUANTIDADE_PICOS_GLOBAIS,
     VARIAVEIS_ANALISAR,
@@ -25,7 +26,7 @@ from .comparar_wavelets import (
 
 
 PASTA_SAIDA_NOVAS_VISUALIZACOES = (
-    PASTA_SAIDA_FIGURAS.parent.parent / "figuras_novas_visualizacoes" / FONTE_ANALISE
+    PASTA_FIGURAS / "novas_visualizacoes" / FONTE_ANALISE
 )
 DPI_FIGURAS = 300
 

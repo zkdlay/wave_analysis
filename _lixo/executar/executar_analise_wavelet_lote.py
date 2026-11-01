@@ -19,7 +19,10 @@ for fonte, variaveis in (
         wave.ARQUIVO_DADOS_TRATADOS = (
             wave.PASTA_DADOS_TRATADOS / wave.ARQUIVOS_DADOS_TRATADOS[fonte]
         )
-        wave.PASTA_SAIDA_FIGURAS = wave.PASTA_PROJETO_DADOS / "figuras_wavelet" / fonte
+        wave.PASTA_SAIDA_FIGURAS = wave.PASTA_FIGURAS / "wavelet_individual" / fonte
+        wave.PASTA_SAIDA_RELATORIOS = (
+            wave.PASTA_RELATORIOS_TXT / "wavelet_individual" / fonte
+        )
         wave.VARIAVEIS_ANALISAR = {
             nome: configuracoes[nome].copy() for nome in variaveis
         }

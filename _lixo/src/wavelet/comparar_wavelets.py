@@ -18,6 +18,8 @@ from .analise_wavelet import (
     PERIODO_MAX_MEDIA_ESCALA,
     PERIODO_MAX_ANALISE_DIAS,
     PERIODO_MIN_MEDIA_ESCALA,
+    PASTA_FIGURAS,
+    PASTA_RELATORIOS_TXT,
     PASTA_SAIDA_FIGURAS,
     QUANTIDADE_PICOS_GLOBAIS,
     RESOLUCAO_ESCALA,
@@ -46,7 +48,10 @@ from .analise_wavelet import (
 WAVELETS_COMPARAR = ["MORLET", "PAUL", "DOG"]
 
 PASTA_SAIDA_COMPARACAO = (
-    PASTA_SAIDA_FIGURAS.parent.parent / "figuras_wavelet_comparacao" / FONTE_ANALISE
+    PASTA_FIGURAS / "comparacao_wavelets" / FONTE_ANALISE
+)
+PASTA_SAIDA_RELATORIOS_COMPARACAO = (
+    PASTA_RELATORIOS_TXT / "comparacao_wavelets" / FONTE_ANALISE
 )
 DPI_FIGURAS = 300
 
@@ -505,6 +510,7 @@ def gerar_texto_relatorio_comparacao(coluna, serie_preparada, resultados):
 
 def main():
     PASTA_SAIDA_COMPARACAO.mkdir(parents=True, exist_ok=True)
+    PASTA_SAIDA_RELATORIOS_COMPARACAO.mkdir(parents=True, exist_ok=True)
     dados = carregar_dados_tratados(ARQUIVO_DADOS_TRATADOS)
 
     for coluna in VARIAVEIS_ANALISAR:
@@ -564,7 +570,9 @@ def main():
                 picos,
             )
             caminho_relatorio = (
-                pasta_wavelet
+                PASTA_SAIDA_RELATORIOS_COMPARACAO
+                / coluna
+                / wavelet_mae.lower()
                 / f"relatorio_{wavelet_mae.lower()}_{coluna}.txt"
             )
             print(f"Relatorio salvo em: {salvar_texto(relatorio, caminho_relatorio)}")
@@ -587,7 +595,11 @@ def main():
             serie_preparada,
             resultados,
         )
-        caminho_relatorio = pasta_variavel / f"relatorio_comparacao_{coluna}.txt"
+        caminho_relatorio = (
+            PASTA_SAIDA_RELATORIOS_COMPARACAO
+            / coluna
+            / f"relatorio_comparacao_{coluna}.txt"
+        )
         print(f"Relatorio salvo em: {salvar_texto(relatorio, caminho_relatorio)}")
 
 

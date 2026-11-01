@@ -1,10 +1,35 @@
-import numpy as np 
+"""Transformada wavelet continua e testes de significancia.
+
+Adaptacao em Python das rotinas de Torrence & Compo (1998), "A practical guide
+to wavelet analysis", Bull. Amer. Meteor. Soc., 79, 61-78.
+"""
+
+import numpy as np
 from scipy.special import gamma
 from scipy.stats import chi2
 
-def wavelet(Y, dt, pad=0, dj=-1, s0=-1, J1=-1, mother=-1, freq=None):
+
+def fator_fourier(mother):
+    """Razao entre o periodo de Fourier e a escala da wavelet-mae."""
+    mother = mother.upper()
+    if mother == 'MORLET':
+        return 4 * np.pi / (6. + np.sqrt(2 + 6. ** 2))
+    if mother == 'PAUL':
+        return 4 * np.pi / (2 * 4. + 1)
+    if mother == 'DOG':
+        return 2 * np.pi * np.sqrt(2. / (2 * 2. + 1))
+    raise ValueError('Wavelet mãe deve ser MORLET, PAUL ou DOG')
+
+
+def wavelet(Y, dt, pad=0, dj=-1, s0=-1, J1=-1, mother=-1, freq=None, somente_potencia=False,
+            precisao_simples=False):
     """
     Função para calcular a transformada wavelet contínua.
+
+    Com somente_potencia=True devolve |W|^2 em float32 no lugar dos
+    coeficientes complexos, usando ~1/4 da memória (útil em séries longas).
+    Com precisao_simples=True os coeficientes complexos são guardados em
+    complex64, usando metade da memória.
     """
     n1 = len(Y)
 
@@ -17,6 +42,7 @@ def wavelet(Y, dt, pad=0, dj=-1, s0=-1, J1=-1, mother=-1, freq=None):
         J1 = np.fix((np.log(n1 * dt / s0) / np.log(2)) / dj)
     if mother == -1:
         mother = 'MORLET'
+    mother = mother.upper()
 
     # Centralizando a série temporal (removendo a média)
     x = Y - np.mean(Y)
@@ -58,12 +84,17 @@ def wavelet(Y, dt, pad=0, dj=-1, s0=-1, J1=-1, mother=-1, freq=None):
         scale = 1. / (fourier_factor * freq)
     
     period = 1. / freq
-    wave = np.zeros((len(scale), n), dtype=complex)
-    
+    # Guarda só os n1 pontos da série (sem o padding) para economizar memória
+    if somente_potencia:
+        wave = np.zeros((len(scale), n1), dtype=np.float32)
+    else:
+        wave = np.zeros((len(scale), n1), dtype=np.complex64 if precisao_simples else complex)
+
     # Cálculo da transformada wavelet para cada escala
     for a1 in range(len(scale)):
         daughter, _, coi, _ = wave_bases(mother, k, scale[a1], param)
-        wave[a1, :] = np.fft.ifft(f * daughter)
+        coeficientes = np.fft.ifft(f * daughter)[:n1]
+        wave[a1, :] = np.abs(coeficientes) ** 2 if somente_potencia else coeficientes
     
     # Construção da região de influência cônica (COI)
     coi = coi * dt * np.concatenate((
@@ -71,12 +102,13 @@ def wavelet(Y, dt, pad=0, dj=-1, s0=-1, J1=-1, mother=-1, freq=None):
         np.insert(np.flip(np.arange(0, int(n1 / 2) - 1)), [-1], [1E-5])
     ))
     
-    return wave[:, :n1], period, scale, coi
+    return wave, period, scale, coi
 
 def wave_bases(mother, k, scale, param):
     """
     Gera as funções base das wavelets Morlet, Paul e DOG.
     """
+    mother = mother.upper()
     n = len(k)
     kplus = (k > 0).astype(float)
 
@@ -129,6 +161,7 @@ def wave_signif(Y, dt, scale, sigtest=0, lag1=0.0, siglvl=0.95,
     param: float ou None - Parâmetro específico da wavelet.
     gws: array ou None - Espectro de potência global.
     """
+    mother = mother.upper()
     n1 = len(np.atleast_1d(Y))  # Número de pontos em Y
     J1 = len(scale) - 1  # Número total de escalas
     dj = np.log2(scale[1] / scale[0])  # Espaçamento entre escalas
@@ -190,8 +223,9 @@ def wave_signif(Y, dt, scale, sigtest=0, lag1=0.0, siglvl=0.95,
         chisquare = chisquare_inv(siglvl, dof) / dof
         signif = fft_theor * chisquare  # Teste padrão de chi-quadrado
     elif sigtest == 1:
-        if len(np.atleast_1d(dof)) == 1:
-            dof = np.zeros(J1) + dof
+        # Uma entrada por escala (J1 + 1 escalas); copia para não alterar o dof de quem chamou
+        dof = np.zeros(J1 + 1) + np.asarray(dof, dtype=float)
+        signif = np.array(fft_theor, dtype=float)
         dof[dof < 1] = 1
         dof = dofmin * np.sqrt(1 + (dof * dt / gamma_fac / scale) ** 2)
         dof[dof < dofmin] = dofmin  # Garante que o dof mínimo seja respeitado
