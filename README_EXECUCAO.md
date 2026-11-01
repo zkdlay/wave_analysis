@@ -1,4 +1,4 @@
-# wave_analysis-1
+# wave_analysis
 
 Análise wavelet de séries meteorológicas. Hoje a única fonte é a estação SONDA
 de Cachoeira Paulista (INPE), pasta **"Dados SONDA"** do Google Drive. O
@@ -7,7 +7,7 @@ fora do git.
 
 ```text
 tratamento por fonte  ->  série pronta  ->  notebook do motor  ->  figuras
-(notebooks/<fonte>/)      (2026/series_prontas/)  (notebooks/wavelet/)  (2026/resultados/wavelet/)
+(notebooks/<fonte>/)      (02_dados/series_prontas/)  (notebooks/wavelet/)  (02_dados/resultados/wavelet/)
 ```
 
 Ambiente: `.\.venv\Scripts\python.exe`. Para recriar o `.venv`:
@@ -25,7 +25,7 @@ Ambiente: `.\.venv\Scripts\python.exe`. Para recriar o `.venv`:
    .\.venv\Scripts\python.exe -m executar.juntar_sonda_por_ano
    ```
 
-   Gera `2026/sonda_unificada/MD/sonda_MD_AAAA.csv` e `.xlsx`, a partir de
+   Gera `02_dados/sonda_unificada/MD/sonda_MD_AAAA.csv` e `.xlsx`, a partir de
    01/12/2023, com a umidade acima de 100 % convertida para 100 % e com as
    falhas do barômetro (~602 mb) trocadas por interpolação linear (coluna
    `press_interpolada`).
@@ -35,12 +35,12 @@ Ambiente: `.\.venv\Scripts\python.exe`. Para recriar o `.venv`:
 
 4. **Tratamento** — `notebooks/sonda/02_tratamento.ipynb`: escolhe a variável e
    os passos (10 min, 1 h...), interpola falhas de até 60 min e grava as séries
-   prontas `2026/series_prontas/sonda_<variavel>_<passo>.csv`.
+   prontas `02_dados/series_prontas/sonda_<variavel>_<passo>.csv`.
 
 5. **Motor wavelet** — `notebooks/wavelet/rodar_wavelet.ipynb`: na célula de
    configuração escolha `SERIE`, os textos dos títulos (`FONTE`, `LOCAL`,
    `VARIAVEL`, `UNIDADE`, `TEXTO_EXTRA`), `WAVELET`, `TESTES`, `GRAFICOS` e,
    se quiser, `PERIODO_MIN`/`PERIODO_MAX`. As figuras ficam em
-   `2026/resultados/wavelet/<fonte>/<variavel>/<wavelet>_<passo>/`.
+   `02_dados/resultados/wavelet/<fonte>/<variavel>/<wavelet>_<passo>/`.
 
 Mapa completo das pastas e dos arquivos: `docs/mapa_do_projeto.md`.

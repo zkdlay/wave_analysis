@@ -12,7 +12,7 @@ Os valores e a resolucao original sao mantidos (MD: 10 min). Alteracoes:
 - falhas do barometro (quedas para ~602 mb e as medias contaminadas nas
   bordas) trocadas por interpolacao linear; a coluna press_interpolada marca
   esses registros.
-Saida em 2026/sonda_unificada/<tipo>/, em .csv e .xlsx.
+Saida em 02_dados/sonda_unificada/<tipo>/, em .csv e .xlsx.
 
 Uso:
     .\\.venv\\Scripts\\python.exe -m executar.juntar_sonda_por_ano

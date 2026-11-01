@@ -11,7 +11,7 @@
 
 ```text
 TRATAMENTO (um por fonte)          FRONTEIRA                 MOTOR (um só, genérico)
-notebooks/<fonte>/ + src/dados/  -> 2026/series_prontas/  -> notebooks/wavelet/ + src/wavelet/
+notebooks/<fonte>/ + src/dados/  -> 02_dados/series_prontas/  -> notebooks/wavelet/ + src/wavelet/
   - lê o dado bruto                  <fonte>_<var>_<passo>.csv   - descobre o passo pelas datas
   - controle de qualidade            colunas: tempo, valor       - recusa série irregular ou com falha
   - muda o passo (10 min -> 1 h)     datas regulares, sem NaN    - normaliza, lag-1, transformada
@@ -54,18 +54,18 @@ mexe no dado fica no tratamento.
 Google Drive/
 └── Dados SONDA/                     ENTRADA: arquivos brutos .dat (2023–2026)
 
-Iniciação Cientifica - INPE/2026/
-├── sonda_unificada/MD/              SAÍDA de juntar_sonda_por_ano.py
-│   ├── sonda_MD_2023 ... sonda_MD_2026 (.csv e .xlsx); 2023 só a partir de 01/12/2023
-│   ├── LEIAME_colunas_MD.txt        significado de cada coluna e cuidados
-│   └── diagnostico/                 tabelas do notebook 01_diagnostico
-├── series_prontas/                  SAÍDA do tratamento, ENTRADA do motor
-├── resultados/
-│   ├── wavelet/<fonte>/<variavel>/<wavelet>_<passo>/   SAÍDA do motor
-│   └── figuras/                     resultados antigos (fluxo anterior), não usados
-├── sonda_tratada/                   saída do notebook antigo (em _lixo/), não usada
-├── dados_brutos/                    cópia local antiga (SONDA e NASA POWER), não usada
-└── dados_tratados/                  bases antigas (NASA, INPE, SONDA), não usadas
+Iniciação Cientifica - INPE/
+├── 01_codigo/wave_analysis/         ESTE projeto
+├── 02_dados/
+│   ├── sonda_unificada/MD/          SAÍDA de juntar_sonda_por_ano.py
+│   │   ├── sonda_MD_2023 ... sonda_MD_2026 (.csv e .xlsx); 2023 só a partir de 01/12/2023
+│   │   ├── LEIAME_colunas_MD.txt    significado de cada coluna e cuidados
+│   │   └── diagnostico/             tabelas do notebook 01_diagnostico
+│   ├── series_prontas/              SAÍDA do tratamento, ENTRADA do motor
+│   └── resultados/wavelet/<fonte>/<variavel>/<wavelet>_<passo>/   SAÍDA do motor
+├── 03_referencias/  04_producao/  05_administrativo/  06_anotacoes/
+└── 99_arquivo/                      projeto antigo, dados e resultados do fluxo anterior
+                                     (LEIAME_reorganizacao_2026-11.md: caminho antigo -> novo)
 ```
 
 ## Escolhas do motor

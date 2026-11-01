@@ -4,7 +4,7 @@ Para que serve: mudar o passo de tempo, achar e preencher falhas e salvar a
 serie pronta que o motor wavelet le.
 Quem usa: os notebooks de tratamento (notebooks/<fonte>/).
 
-Serie pronta = arquivo <fonte>_<variavel>_<passo>.csv em 2026/series_prontas,
+Serie pronta = arquivo <fonte>_<variavel>_<passo>.csv em 02_dados/series_prontas,
 com as colunas `tempo` e `valor`, datas regulares e sem falhas.
 """
 

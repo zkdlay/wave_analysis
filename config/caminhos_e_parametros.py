@@ -4,7 +4,8 @@ Para que serve: um lugar so para as pastas (dados, series prontas, resultados)
 e para os parametros padrao do motor wavelet.
 Quem usa: src/dados, src/wavelet, executar/ e os notebooks.
 
-Os dados e resultados ficam na pasta 2026, vizinha ao diretorio do projeto.
+Os dados e resultados ficam em 02_dados/, na raiz da pasta da IC
+(o projeto fica em 01_codigo/wave_analysis).
 Os parametros da wavelet sao so valores padrao: o notebook do motor pode
 trocar qualquer um deles sem editar este arquivo.
 """
@@ -18,7 +19,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 PASTA_PROJETO = Path(__file__).resolve().parents[1]
-PASTA_PROJETO_DADOS = PASTA_PROJETO.parent / "2026"
+PASTA_PROJETO_DADOS = PASTA_PROJETO.parents[1] / "02_dados"
 PASTA_RESULTADOS = PASTA_PROJETO_DADOS / "resultados"
 
 # Dados brutos da SONDA (.dat), na pasta "Dados SONDA" do Google Drive para
