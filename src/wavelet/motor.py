@@ -124,8 +124,8 @@ def faixa_de_escalas(n, dt, wavelet_mae, dj, escalas_iniciais_em_passos, periodo
 
     Sem `periodo_min`: s0 = escalas_iniciais_em_passos * passo.
     Sem `periodo_max`: vai ate o maior periodo que ainda tem algum trecho fora
-    do cone de influencia (COI), no meio da serie. Periodos maiores que esse
-    estariam inteiros na regiao de efeito de borda.
+    do cone de influencia (COI), no meio da serie (periodos maiores estariam
+    inteiros na regiao de efeito de borda), sem passar da duracao da serie.
     """
     fator = fator_fourier(wavelet_mae)
     if periodo_min is None:
@@ -133,7 +133,7 @@ def faixa_de_escalas(n, dt, wavelet_mae, dj, escalas_iniciais_em_passos, periodo
     else:
         s0 = (pd.Timedelta(periodo_min) / UM_DIA) / fator
     if periodo_max is None:
-        periodo_max_dias = fator_coi(wavelet_mae) * dt * ((n + 1) // 2 - 2)
+        periodo_max_dias = min(fator_coi(wavelet_mae) * dt * ((n + 1) // 2 - 2), n * dt)
         numero = int(np.ceil(np.log2(periodo_max_dias / fator / s0) / dj))
     else:
         periodo_max_dias = pd.Timedelta(periodo_max) / UM_DIA
