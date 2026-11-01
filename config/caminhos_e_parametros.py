@@ -1,9 +1,12 @@
-"""Caminhos e parametros do projeto.
+"""Caminhos das pastas e valores padrao da wavelet.
+
+Para que serve: um lugar so para as pastas (dados, series prontas, resultados)
+e para os parametros padrao do motor wavelet.
+Quem usa: src/dados, src/wavelet, executar/ e os notebooks.
 
 Os dados e resultados ficam na pasta 2026, vizinha ao diretorio do projeto.
-Os parametros da wavelet sao valores padrao: as funcoes de src/wavelet os
-recebem como argumentos, entao para mudar uma execucao basta passar outro
-valor na chamada (nao e preciso editar este arquivo).
+Os parametros da wavelet sao so valores padrao: o notebook do motor pode
+trocar qualquer um deles sem editar este arquivo.
 """
 
 import os
@@ -27,11 +30,15 @@ CANDIDATOS_PASTA_SONDA = [
     Path(f"G:/.shortcut-targets-by-id/{ID_PASTA_DRIVE_SONDA}/Dados SONDA"),
 ]
 
+# SAIDA de executar/juntar_sonda_por_ano.py (um arquivo por ano, MD 10 min)
 PASTA_SONDA_UNIFICADA = PASTA_PROJETO_DADOS / "sonda_unificada"
 PASTA_SONDA_MD = PASTA_SONDA_UNIFICADA / "MD"
-PASTA_SONDA_TRATADA = PASTA_PROJETO_DADOS / "sonda_tratada"
-PASTA_FIGURAS_SONDA = PASTA_RESULTADOS / "figuras" / "sonda_tratamento"
-PASTA_FIGURAS_WAVELET = PASTA_RESULTADOS / "figuras" / "wavelet_sonda_md"
+
+# Fronteira entre tratamento e motor: <fonte>_<variavel>_<passo>.csv (tempo, valor)
+PASTA_SERIES_PRONTAS = PASTA_PROJETO_DADOS / "series_prontas"
+
+# Figuras do motor: wavelet/<fonte>/<variavel>/<wavelet>_<passo>/
+PASTA_RESULTADOS_WAVELET = PASTA_RESULTADOS / "wavelet"
 
 
 def pasta_dados_sonda():
@@ -45,25 +52,11 @@ def pasta_dados_sonda():
 
 
 # ---------------------------------------------------------------------------
-# Variaveis da SONDA-MD
+# Parametros padrao do motor wavelet
 # ---------------------------------------------------------------------------
 
-VARIAVEIS_MD = {
-    "tp_sfc": {"rotulo": "Temperatura do ar", "unidade": "°C"},
-    "humid": {"rotulo": "Umidade relativa", "unidade": "%"},
-    "press": {"rotulo": "Pressao atmosferica", "unidade": "mb"},
-}
-
-
-# ---------------------------------------------------------------------------
-# Parametros padrao da wavelet (tempo em dias)
-# ---------------------------------------------------------------------------
-
-PASSO_MD_DIAS = 10 / 1440       # dados MD a cada 10 min
-RESOLUCAO_ESCALA = 1 / 8        # dj: 8 escalas por oitava (antes 1/4)
-ESCALAS_INICIAIS_EM_PASSOS = 2  # s0 = 2 * dt
-PERIODO_MAX_DIAS = 365
-USAR_PADDING = True
+RESOLUCAO_ESCALA = 1 / 8        # dj: 8 escalas por oitava
+ESCALAS_INICIAIS_EM_PASSOS = 2  # menor escala s0 = 2 * passo da serie
+USAR_PADDING = True             # completa com zeros ate potencia de 2
 NIVEL_SIGNIFICANCIA = 0.95
-INTERPOLAR_ATE_MINUTOS = 60     # falhas maiores que isso interrompem a analise
 DPI_FIGURAS = 200

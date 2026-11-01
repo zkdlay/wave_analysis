@@ -1,4 +1,8 @@
-"""Leitura dos arquivos TOA5 (.dat) da estacao SONDA de Cachoeira Paulista.
+"""Leitura e tratamento dos dados da estacao SONDA de Cachoeira Paulista.
+
+Para que serve: ler os .dat brutos (TOA5), juntar por ano, corrigir umidade e
+pressao e ler a variavel dos arquivos anuais do MD.
+Quem usa: executar/juntar_sonda_por_ano.py e os notebooks de notebooks/sonda/.
 
 Cada arquivo cobre um intervalo de dias do ano e tem 4 linhas de cabecalho:
 metadados do datalogger, nomes das colunas, unidades e tipo de processamento
@@ -386,3 +390,24 @@ def agregar_horario(dados, tipo, processamento, cobertura_minima=0.75):
     horario = horario.reindex(grade)
     horario.index.name = "data_hora"
     return horario, contagem.reindex(grade, fill_value=0)
+
+
+# ---------------------------------------------------------------------------
+# Leitura dos arquivos anuais (saida de executar/juntar_sonda_por_ano.py)
+# ---------------------------------------------------------------------------
+
+def carregar_variavel_md(variavel, pasta=None, inicio=None, fim=None):
+    """Le uma variavel dos sonda_MD_AAAA.csv e devolve a serie na grade regular de 10 min.
+
+    Horarios sem registro entram como NaN (para o tratamento ver as falhas).
+    """
+    if pasta is None:
+        from config.caminhos_e_parametros import PASTA_SONDA_MD as pasta
+    arquivos = sorted(Path(pasta).glob("sonda_MD_*.csv"))
+    if not arquivos:
+        raise FileNotFoundError(f"Nenhum sonda_MD_*.csv encontrado em {pasta}")
+    partes = [pd.read_csv(a, usecols=["TIMESTAMP", variavel], parse_dates=["TIMESTAMP"]) for a in arquivos]
+    dados = pd.concat(partes).drop_duplicates("TIMESTAMP").set_index("TIMESTAMP").sort_index()[variavel]
+    dados = dados.loc[inicio:fim]
+    grade = pd.date_range(dados.index.min(), dados.index.max(), freq=INTERVALO_REGISTRO["MD"])
+    return dados.reindex(grade)

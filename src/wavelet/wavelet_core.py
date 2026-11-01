@@ -1,4 +1,8 @@
-"""Transformada wavelet continua e testes de significancia.
+"""Transformada wavelet continua e testes de significancia (nucleo matematico).
+
+Para que serve: a conta em si (transformada e limiares de significancia).
+Quem usa: src/wavelet/motor.py e src/wavelet/significancia.py. Nao precisa
+ser editado para trocar wavelet-mae, graficos ou testes.
 
 Adaptacao em Python das rotinas de Torrence & Compo (1998), "A practical guide
 to wavelet analysis", Bull. Amer. Meteor. Soc., 79, 61-78.
