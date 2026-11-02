@@ -65,6 +65,7 @@ Iniciação Cientifica - INPE/
 │   │   ├── LEIAME_colunas_MD.txt    significado de cada coluna e cuidados
 │   │   └── diagnostico/             tabelas do notebook 01_diagnostico
 │   ├── series_prontas/              SAÍDA do tratamento, ENTRADA do motor
+│   │   ├── LEIAME_falhas_series_prontas.txt      o que foi feito com as falhas de cada variável
 │   │   └── LEIAME_umidade_falhas_saturacao.txt   regra provisória das falhas da umidade
 │   └── resultados/wavelet/<fonte>/<variavel>/<wavelet>_<passo>/   SAÍDA do motor
 ├── 03_referencias/  04_producao/  05_administrativo/  06_anotacoes/
