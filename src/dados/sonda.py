@@ -325,6 +325,35 @@ def saturar_umidade(dados, coluna="humid", maximo=100.0):
     return dados, int(acima.sum())
 
 
+def preencher_umidade_saturada(serie, limiar=99.0, valor=100.0):
+    """Preenche com 100 % as falhas de umidade que comecam com o sensor no topo.
+
+    Entre 25/03 e 09/05/2025 o sensor grava NAN por ate 15 h, quase sempre a
+    noite, logo depois de ler 100 %. Decisao provisoria (11/2026): supor ar
+    saturado e preencher com `valor` toda falha cujo ultimo registro antes dela
+    seja >= `limiar`. Motivos e ressalvas: 02_dados/series_prontas/
+    LEIAME_umidade_falhas_saturacao.txt. As demais falhas ficam NaN.
+
+    Devolve (serie_preenchida, tabela com inicio, fim, registros, valor_antes).
+    """
+    faltante = serie.isna()
+    valor_antes = serie.ffill().shift()  # dentro de uma falha: ultimo valor antes dela
+    preencher = faltante & (valor_antes >= limiar)
+
+    preenchida = serie.copy()
+    preenchida[preencher] = valor
+
+    trecho = (preencher != preencher.shift()).cumsum()[preencher]
+    tabela = (
+        pd.DataFrame({"tempo": serie.index[preencher], "valor_antes": valor_antes[preencher].to_numpy()})
+        .groupby(trecho.to_numpy())
+        .agg(inicio=("tempo", "min"), fim=("tempo", "max"), registros=("tempo", "size"),
+             valor_antes=("valor_antes", "first"))
+        .reset_index(drop=True)
+    )
+    return preenchida, tabela
+
+
 def interpolar_falhas_pressao(serie, limite_mb=5.0, janela="6h"):
     """Troca por interpolacao linear os registros de pressao com falha do sensor.
 

@@ -4,8 +4,10 @@
 > parte do fluxo e vai para `_lixo/` (fora do git, mas consultável na pasta).
 >
 > Hoje a única fonte é a estação SONDA de Cachoeira Paulista (pasta **"Dados
-> SONDA"** do Google Drive). A análise wavelet cobre só a temperatura do MD; a
-> umidade aguarda a resposta do grupo sobre as falhas de mar–mai/2025.
+> SONDA"** do Google Drive). Há séries prontas de temperatura e de umidade do
+> MD. Na umidade, as falhas de mar–mai/2025 foram preenchidas com 100 % de forma
+> **provisória** (ar saturado, a confirmar com o grupo; ver
+> `02_dados/series_prontas/LEIAME_umidade_falhas_saturacao.txt`).
 
 ## Ideia geral
 
@@ -62,6 +64,7 @@ Iniciação Cientifica - INPE/
 │   │   ├── LEIAME_colunas_MD.txt    significado de cada coluna e cuidados
 │   │   └── diagnostico/             tabelas do notebook 01_diagnostico
 │   ├── series_prontas/              SAÍDA do tratamento, ENTRADA do motor
+│   │   └── LEIAME_umidade_falhas_saturacao.txt   regra provisória das falhas da umidade
 │   └── resultados/wavelet/<fonte>/<variavel>/<wavelet>_<passo>/   SAÍDA do motor
 ├── 03_referencias/  04_producao/  05_administrativo/  06_anotacoes/
 └── 99_arquivo/                      projeto antigo, dados e resultados do fluxo anterior
