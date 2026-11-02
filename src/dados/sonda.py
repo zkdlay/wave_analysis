@@ -1,7 +1,8 @@
 """Leitura e tratamento dos dados da estacao SONDA de Cachoeira Paulista.
 
 Para que serve: ler os .dat brutos (TOA5), juntar por ano, corrigir umidade e
-pressao e ler a variavel dos arquivos anuais do MD.
+pressao, ler a variavel dos arquivos anuais do MD e ler uma variavel do SD
+(radiacao) direto dos .dat.
 Quem usa: executar/juntar_sonda_por_ano.py e os notebooks de notebooks/sonda/.
 
 Cada arquivo cobre um intervalo de dias do ano e tem 4 linhas de cabecalho:
@@ -440,3 +441,54 @@ def carregar_variavel_md(variavel, pasta=None, inicio=None, fim=None):
     dados = dados.loc[inicio:fim]
     grade = pd.date_range(dados.index.min(), dados.index.max(), freq=INTERVALO_REGISTRO["MD"])
     return dados.reindex(grade)
+
+
+# ---------------------------------------------------------------------------
+# Leitura de uma variavel do SD (radiacao, 1 min) direto dos .dat brutos
+# ---------------------------------------------------------------------------
+
+INICIO_CR1000X = pd.Timestamp("2023-12-01 00:00:00")  # troca do datalogger
+
+
+def carregar_variavel_sd(variavel, pasta=None, inicio=INICIO_CR1000X, fim=None):
+    """Le a media de 1 min de uma variavel do SD (ex.: "glo", "lw_calc") e devolve na grade de 1 min.
+
+    O SD ainda nao foi juntado por ano: le direto dos .dat da pasta "Dados SONDA".
+    Por padrao comeca na troca do datalogger (01/12/2023), como o MD.
+    Alteracoes (os valores bons nao mudam):
+    - codigos de falha viram NaN;
+    - INTERVALOS_INVALIDOS da variavel viram NaN (ex.: glo antes de 08/02/2024);
+    - lw_calc vira NaN quando tp_lw_case sai do limite fisico, porque o
+      datalogger calcula a onda longa com essa temperatura (em 01/11/2024 ela
+      marca -86 C por 22 min e a onda longa fica negativa).
+    A serie comeca no primeiro valor valido; horarios sem registro entram como NaN.
+    """
+    if pasta is None:
+        from config.caminhos_e_parametros import pasta_dados_sonda
+        pasta = pasta_dados_sonda()
+    coluna = f"{variavel}_avg" if variavel not in ("tp_dir", "tp_lw_case") else variavel
+    colunas = [coluna] + (["tp_lw_case"] if variavel == "lw_calc" else [])
+
+    partes = []
+    for caminho in listar_arquivos(pasta, "SD")["caminho"]:
+        parte = pd.read_csv(caminho, skiprows=[0, 2, 3], usecols=["TIMESTAMP", *colunas],
+                            na_values=["NAN", "NaN", "INF", "-INF"], low_memory=False)
+        partes.append(parte)
+    dados = pd.concat(partes)
+    dados["TIMESTAMP"] = pd.to_datetime(dados["TIMESTAMP"], errors="coerce")
+    dados = dados.dropna(subset=["TIMESTAMP"]).drop_duplicates("TIMESTAMP").set_index("TIMESTAMP").sort_index()
+    dados = dados.apply(pd.to_numeric, errors="coerce").replace(CODIGOS_INVALIDOS, np.nan)
+
+    serie = dados[coluna]
+    for ini, fim_invalido in INTERVALOS_INVALIDOS.get(variavel, []):
+        serie[(serie.index >= ini) & (serie.index < fim_invalido)] = np.nan
+    if variavel == "lw_calc":
+        minimo, maximo = LIMITES_FISICOS["tp_lw_case"]
+        serie[(dados["tp_lw_case"] < minimo) | (dados["tp_lw_case"] > maximo)] = np.nan
+
+    serie = serie.loc[inicio:fim]
+    serie = serie.loc[serie.first_valid_index():]
+    grade = pd.date_range(serie.index.min(), serie.index.max(), freq=INTERVALO_REGISTRO["SD"])
+    serie = serie.reindex(grade)
+    serie.name = variavel
+    return serie

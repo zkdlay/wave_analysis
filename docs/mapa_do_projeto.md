@@ -5,7 +5,8 @@
 >
 > Hoje a única fonte é a estação SONDA de Cachoeira Paulista (pasta **"Dados
 > SONDA"** do Google Drive). Há séries prontas de temperatura e de umidade do
-> MD. Na umidade, as falhas de mar–mai/2025 foram preenchidas com 100 % de forma
+> MD e de radiação de onda curta (`glo`) e onda longa (`lw_calc`) do SD, lidas
+> direto dos `.dat` (o SD ainda não foi juntado por ano). Na umidade, as falhas de mar–mai/2025 foram preenchidas com 100 % de forma
 > **provisória** (ar saturado, a confirmar com o grupo; ver
 > `02_dados/series_prontas/LEIAME_umidade_falhas_saturacao.txt`).
 
@@ -30,7 +31,7 @@ mexe no dado fica no tratamento.
 | `README_EXECUCAO.md` | como rodar cada etapa | você |
 | `requirements.txt` | versões das bibliotecas, para recriar o `.venv` | `pip install -r` |
 | `config/caminhos_e_parametros.py` | pastas e parâmetros padrão da wavelet | todos |
-| `src/dados/sonda.py` | ler os `.dat`, juntar por ano, corrigir umidade/pressão, ler o MD | `executar/`, `notebooks/sonda/` |
+| `src/dados/sonda.py` | ler os `.dat`, juntar por ano, corrigir umidade/pressão, ler o MD, ler uma variável do SD | `executar/`, `notebooks/sonda/` |
 | `src/dados/comum.py` | mudar passo, achar/preencher falhas, salvar série pronta (qualquer fonte) | notebooks de tratamento |
 | `src/wavelet/wavelet_core.py` | a conta: transformada e significância (Torrence & Compo, 1998) | `motor.py`, `significancia.py` |
 | `src/wavelet/motor.py` | valida a série, passo, normalização, lag-1, faixa de períodos, transformada | notebook do motor |
@@ -38,7 +39,7 @@ mexe no dado fica no tratamento.
 | `src/wavelet/graficos.py` | gráficos (`GRAFICOS_DISPONIVEIS`), títulos, salvar figuras | notebook do motor |
 | `executar/juntar_sonda_por_ano.py` | `.dat` brutos -> um arquivo por ano (MD, 10 min) | rodado à mão |
 | `notebooks/sonda/01_diagnostico.ipynb` | mostra falhas e valores estranhos do MD (não altera nada) | você |
-| `notebooks/sonda/02_tratamento.ipynb` | gera as séries prontas da SONDA | você |
+| `notebooks/sonda/02_tratamento.ipynb` | gera as séries prontas da SONDA (`TIPO` = MD ou SD) | você |
 | `notebooks/wavelet/rodar_wavelet.ipynb` | roda o motor numa série e gera as figuras | você |
 
 ## Como estender
