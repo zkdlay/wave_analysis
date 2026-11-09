@@ -35,6 +35,9 @@ CANDIDATOS_PASTA_SONDA = [
 PASTA_SONDA_UNIFICADA = PASTA_PROJETO_DADOS / "sonda_unificada"
 PASTA_SONDA_MD = PASTA_SONDA_UNIFICADA / "MD"
 
+# Dados horarios do NASA POWER (CSV baixado do site, um arquivo por download)
+PASTA_NASA_POWER = PASTA_PROJETO_DADOS / "nasa_power"
+
 # Fronteira entre tratamento e motor: <fonte>_<variavel>_<passo>.csv (tempo, valor)
 PASTA_SERIES_PRONTAS = PASTA_PROJETO_DADOS / "series_prontas"
 

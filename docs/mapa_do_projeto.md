@@ -3,8 +3,10 @@
 > Lista oficial do que está em uso. **Regra:** o que não aparece aqui não faz
 > parte do fluxo e vai para `_lixo/` (fora do git, mas consultável na pasta).
 >
-> Hoje a única fonte é a estação SONDA de Cachoeira Paulista (pasta **"Dados
-> SONDA"** do Google Drive). Há séries prontas de temperatura e de umidade do
+> Fontes: a estação SONDA de Cachoeira Paulista (pasta **"Dados
+> SONDA"** do Google Drive) e, em diagnóstico, o NASA POWER horário do mesmo ponto
+> (`02_dados/nasa_power/`), com série pronta de temperatura (`nasapower_t2m_1h`, horário
+> deslocado para o fim da hora; ver `02_dados/series_prontas/LEIAME_nasapower_series_prontas.txt`). Há séries prontas de temperatura e de umidade do
 > MD e de radiação de onda curta (`glo`) e onda longa (`lw_calc`) do SD, lidas
 > direto dos `.dat` (o SD ainda não foi juntado por ano). Na umidade, as falhas de mar–mai/2025 foram preenchidas com 100 % de forma
 > **provisória** (ar saturado, a confirmar com o grupo; ver
@@ -32,6 +34,7 @@ mexe no dado fica no tratamento.
 | `requirements.txt` | versões das bibliotecas, para recriar o `.venv` | `pip install -r` |
 | `config/caminhos_e_parametros.py` | pastas e parâmetros padrão da wavelet | todos |
 | `src/dados/sonda.py` | ler os `.dat`, juntar por ano, corrigir umidade/pressão, ler o MD, ler uma variável do SD | `executar/`, `notebooks/sonda/` |
+| `src/dados/nasa_power.py` | ler o CSV horário do NASA POWER (cabeçalho, −999 → NaN), passar o horário para o fim da hora e calcular a irradiância no topo da atmosfera | `notebooks/nasa_power/` |
 | `src/dados/comum.py` | mudar passo, achar/preencher falhas, salvar série pronta (qualquer fonte) | notebooks de tratamento |
 | `src/wavelet/wavelet_core.py` | a conta: transformada e significância (Torrence & Compo, 1998) | `motor.py`, `significancia.py` |
 | `src/wavelet/motor.py` | valida a série, passo, normalização, lag-1, faixa de períodos, transformada | notebook do motor |
@@ -40,6 +43,9 @@ mexe no dado fica no tratamento.
 | `executar/juntar_sonda_por_ano.py` | `.dat` brutos -> um arquivo por ano (MD, 10 min) | rodado à mão |
 | `notebooks/sonda/01_diagnostico.ipynb` | mostra falhas e valores estranhos do MD (não altera nada) | você |
 | `notebooks/sonda/02_tratamento.ipynb` | gera as séries prontas da SONDA (`TIPO` = MD ou SD) | você |
+| `notebooks/nasa_power/01_diagnostico.ipynb` | falhas, valores estranhos, coerência física (horário, pressão × altitude, vento) e visualização do NASA POWER (não altera nada) | você |
+| `notebooks/nasa_power/02_tratamento.ipynb` | gera as séries prontas do NASA POWER (`nasapower_<variavel>_1h`; horário +1 h) | você |
+| `notebooks/visualizacao/ciclo_diario.ipynb` | ciclo diário médio de temperatura, umidade, onda curta e onda longa: SONDA (10 min) e NASA POWER (1 h) em gráficos separados, ponto no meio do intervalo, mesmo período, máximos e mínimos (não altera nada) | você |
 | `notebooks/wavelet/rodar_wavelet.ipynb` | roda o motor numa série e gera as figuras | você |
 
 ## Como estender
@@ -64,10 +70,15 @@ Iniciação Cientifica - INPE/
 │   │   ├── sonda_MD_2023 ... sonda_MD_2026 (.csv e .xlsx); 2023 só a partir de 01/12/2023
 │   │   ├── LEIAME_colunas_MD.txt    significado de cada coluna e cuidados
 │   │   └── diagnostico/             tabelas do notebook 01_diagnostico
+│   ├── nasa_power/                  CSV horário baixado do NASA POWER (POWER_Point_Hourly_*.csv)
+│   │   └── diagnostico/             tabelas do notebook nasa_power/01_diagnostico
 │   ├── series_prontas/              SAÍDA do tratamento, ENTRADA do motor
 │   │   ├── LEIAME_falhas_series_prontas.txt      o que foi feito com as falhas de cada variável
-│   │   └── LEIAME_umidade_falhas_saturacao.txt   regra provisória das falhas da umidade
-│   └── resultados/wavelet/<fonte>/<variavel>/<wavelet>_<passo>/   SAÍDA do motor
+│   │   ├── LEIAME_umidade_falhas_saturacao.txt   regra provisória das falhas da umidade
+│   │   └── LEIAME_nasapower_series_prontas.txt   o que foi feito nas séries do NASA POWER (horário +1 h)
+│   └── resultados/
+│       ├── wavelet/<fonte>/<variavel>/<wavelet>_<passo>/   SAÍDA do motor
+│       └── ciclo_diario/            figuras de notebooks/visualizacao/ciclo_diario
 ├── 03_referencias/  04_producao/  05_administrativo/  06_anotacoes/
 └── 99_arquivo/                      projeto antigo, dados e resultados do fluxo anterior
                                      (LEIAME_reorganizacao_2026-11.md: caminho antigo -> novo)
@@ -103,3 +114,13 @@ por área; Monte Carlo).
 - Troca do datalogger CR3000 → CR1000X em **01/12/2023**; antes disso o MD não
   tem chuva nem vento.
 - Dúvidas em aberto sobre os dados: checklist "Checklist - dúvidas sobre os dados SONDA-CPA".
+
+## Convenções dos dados NASA POWER
+
+- Não é estação: reanálise MERRA-2 (temperatura, umidade, pressão, vento) e satélite CERES SYN1deg
+  (radiação), numa célula de ~0,5° × 0,625° com elevação média de 1028 m (a estação fica a ~574 m).
+- Horário em **UTC**; a coluna `HR` marca o **início** da hora (o contrário da SONDA): `HR = 14` do
+  NASA POWER corresponde ao registro das 15:00 da SONDA. Nas séries prontas o horário já foi
+  deslocado (+1 h) e marca o **fim**, como na SONDA. Fonte nas séries: `nasapower` (sem `_`, porque o
+  motor separa o nome pelo primeiro `_`).
+- Radiação em Wh/m² por hora = média em W/m² na hora. Pressão em kPa (~901 hPa no nível do modelo).
